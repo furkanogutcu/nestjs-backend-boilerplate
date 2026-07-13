@@ -1,0 +1,39 @@
+import { VersioningType } from '@nestjs/common';
+
+const namespace = 'app';
+const separator = ':';
+
+export const versioningConfig = {
+  type: VersioningType.URI,
+  defaultVersion: '1',
+  prefix: 'api/v',
+} as const;
+
+export const appConfig = {
+  // * Human-facing display name (emails, API docs title). Free-form.
+  name: 'NestJS Backend Boilerplate',
+  // * Slug-safe technical identifier (no spaces): Kafka client id, event producer, Redis connection names, service
+  // * labels. Keep it in sync with the namespace used for key prefixes.
+  slug: namespace,
+  redis: {
+    separator,
+    keyPrefixes: {
+      cache: `${namespace}${separator}cache`,
+      rateLimit: `${namespace}${separator}rate-limit`,
+      bull: `${namespace}${separator}bull`,
+      revocation: `${namespace}${separator}revocation`,
+      idempotency: `${namespace}${separator}idempotency`,
+      oauthNonce: `${namespace}${separator}oauth-nonce`,
+      oauthSigninNonce: `${namespace}${separator}oauth-signin-nonce`,
+      emailVerification: `${namespace}${separator}email-verification`,
+      passwordReset: `${namespace}${separator}password-reset`,
+      gameCenterReplay: `${namespace}${separator}game-center-replay`,
+      realtime: `${namespace}${separator}realtime`,
+      presenceLock: `${namespace}${separator}presence-lock`,
+      mailWebhookInbox: `${namespace}${separator}mail-webhook-inbox`,
+    },
+  },
+  cache: {
+    defaultTtl: 3600,
+  },
+} as const;
