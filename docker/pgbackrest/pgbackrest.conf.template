@@ -1,0 +1,40 @@
+[global]
+repo1-type           = s3
+repo1-s3-endpoint    = ${R2_ENDPOINT}
+repo1-s3-bucket      = ${R2_BUCKET}
+repo1-s3-region      = auto
+repo1-s3-uri-style   = path
+repo1-s3-key         = ${R2_ACCESS_KEY}
+repo1-s3-key-secret  = ${R2_SECRET_KEY}
+repo1-s3-verify-tls  = y
+
+repo1-cipher-type    = aes-256-cbc
+repo1-cipher-pass    = ${BACKUP_ENCRYPTION_PASSPHRASE}
+
+; 4 weekly full × 1 week ≈ 30-day PITR window.
+repo1-retention-full          = 4
+repo1-retention-diff          = 7
+repo1-retention-archive       = 30
+repo1-retention-archive-type  = full
+
+compress-type   = zst
+compress-level  = 3
+process-max     = 4
+
+; Async archiving keeps Postgres' archive_command latency-decoupled from R2.
+archive-async   = y
+archive-push-queue-max = 1GiB
+archive-get-queue-max  = 256MiB
+spool-path      = /var/spool/pgbackrest
+
+start-fast      = y
+
+log-level-console  = info
+log-level-file     = detail
+log-path           = /var/log/pgbackrest
+
+[main]
+pg1-path        = /var/lib/postgresql/data
+pg1-port        = 5432
+pg1-socket-path = /var/run/postgresql
+pg1-user        = postgres

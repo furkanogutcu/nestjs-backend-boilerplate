@@ -1,0 +1,32 @@
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: ${TEMPO_RETENTION}
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      endpoint: ${R2_S3_ENDPOINT}
+      bucket: ${TEMPO_R2_BUCKET}
+      access_key: ${R2_ACCESS_KEY}
+      secret_key: ${R2_SECRET_KEY}
+      region: auto
+      forcepathstyle: true
+      insecure: false
+    wal:
+      path: /var/tempo/wal

@@ -1,0 +1,57 @@
+{
+  "uid": "app-runtime",
+  "title": "App — Runtime (Node.js)",
+  "tags": ["app", "runtime"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Memory (RSS / heap used)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "process_resident_memory_bytes{job=\"app\"}", "legendFormat": "rss" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nodejs_heap_size_used_bytes{job=\"app\"}", "legendFormat": "heap used" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "CPU usage (cores)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(process_cpu_seconds_total{job=\"app\"}[5m])", "legendFormat": "cpu cores" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Event loop lag (p99)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nodejs_eventloop_lag_p99_seconds{job=\"app\"}", "legendFormat": "lag p99" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Active handles & requests",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nodejs_active_handles_total{job=\"app\"}", "legendFormat": "handles" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nodejs_active_requests_total{job=\"app\"}", "legendFormat": "requests" }
+      ]
+    }
+  ]
+}

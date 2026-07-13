@@ -1,0 +1,78 @@
+services:
+  tempo:
+    image: grafana/tempo:2.6.1
+    restart: unless-stopped
+    command: ['-config.file=/etc/tempo/tempo.yaml']
+    volumes:
+      - ./docker/observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - '3200:3200'
+
+  loki:
+    image: grafana/loki:3.2.1
+    restart: unless-stopped
+    command: ['-config.file=/etc/loki/loki.yaml']
+    volumes:
+      - ./docker/observability/loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki_data:/loki
+    ports:
+      - '3100:3100'
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--enable-feature=exemplar-storage'
+      - '--storage.tsdb.retention.time=15d'
+    volumes:
+      - ./docker/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/observability/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '9090:9090'
+
+  alloy:
+    image: grafana/alloy:v1.4.2
+    restart: unless-stopped
+    command:
+      - 'run'
+      - '--server.http.listen-addr=0.0.0.0:12345'
+      - '/etc/alloy/config.alloy'
+    volumes:
+      - ./docker/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - '4317:4317'
+      - '4318:4318'
+      - '12345:12345'
+    depends_on:
+      - tempo
+      - loki
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_FEATURE_TOGGLES_ENABLE: traceToMetrics
+    volumes:
+      - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - '3000:3000'
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
+volumes:
+  tempo_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:

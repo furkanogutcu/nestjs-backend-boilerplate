@@ -1,0 +1,62 @@
+groups:
+  - name: app
+    rules:
+      - alert: AppDown
+        expr: up{job="app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'app is down (no metrics scraped for 1m)'
+
+      - alert: HighHttpErrorRate
+        expr: |
+          sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_requests_total[5m])), 1) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'HTTP 5xx error rate above 5% over the last 5m'
+
+      - alert: HighHttpLatencyP99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'HTTP p99 latency above 2s over the last 5m'
+
+  - name: app-kafka
+    rules:
+      - alert: OutboxBacklogGrowing
+        expr: kafka_outbox_pending > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Outbox backlog above 1000 pending for 10m (relay falling behind)'
+
+      - alert: OutboxPublishFailures
+        expr: increase(kafka_outbox_failed_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Outbox messages exhausted retries and failed in the last 15m'
+
+      - alert: DlqMessagesAppearing
+        expr: increase(kafka_dlq_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Messages landed in the DLQ (topic {{ $labels.topic }}) in the last 15m'
+
+      - alert: SustainedRetryRate
+        expr: sum(rate(kafka_retry_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Sustained Kafka retry rate for 10m (likely downstream failure)'

@@ -1,0 +1,42 @@
+-- PgBouncer auth_query: SECURITY DEFINER so it can read pg_shadow without granting the
+-- pgbouncer_auth role direct access; EXECUTE limited to that role only.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pgbouncer_auth') THEN
+    CREATE ROLE pgbouncer_auth WITH LOGIN PASSWORD '@@PGBOUNCER_AUTH_PASSWORD@@';
+  ELSE
+    ALTER ROLE pgbouncer_auth WITH LOGIN PASSWORD '@@PGBOUNCER_AUTH_PASSWORD@@';
+  END IF;
+END
+$$;
+
+CREATE OR REPLACE FUNCTION public.user_lookup(in_user text)
+RETURNS TABLE(username text, password text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT usename::text, passwd::text
+    FROM   pg_catalog.pg_shadow
+    WHERE  usename = in_user;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.user_lookup(text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.user_lookup(text) TO pgbouncer_auth;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'exporter') THEN
+    CREATE ROLE exporter WITH LOGIN PASSWORD '@@POSTGRES_EXPORTER_PASSWORD@@';
+  ELSE
+    ALTER ROLE exporter WITH LOGIN PASSWORD '@@POSTGRES_EXPORTER_PASSWORD@@';
+  END IF;
+END
+$$;
+
+GRANT pg_monitor       TO exporter;
+GRANT pg_read_all_stats TO exporter;
+GRANT CONNECT ON DATABASE "@@POSTGRES_DB@@" TO exporter;

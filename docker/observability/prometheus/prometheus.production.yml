@@ -1,0 +1,46 @@
+# Prometheus does NOT expand env vars in this file. Replace every REPLACE_* token
+# before deploying (Dokploy: edit this file or mount your own). Container names
+# follow the production stack pattern "<APP_NAME>-<service>" on dokploy-network.
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # The app is deployed separately by Dokploy onto dokploy-network.
+  # Set the target to the app's container/service name and keep its basic-auth creds.
+  - job_name: app
+    metrics_path: /api/v1/metrics
+    basic_auth:
+      username: REPLACE_METRICS_AUTH_USER
+      password: REPLACE_METRICS_AUTH_PASSWORD
+    static_configs:
+      - targets: ['REPLACE_APP_SERVICE:4000']
+        labels:
+          service: app
+
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ['REPLACE_APP_NAME-postgres-exporter:9187']
+
+  - job_name: pgbouncer-exporter
+    static_configs:
+      - targets: ['REPLACE_APP_NAME-pgbouncer-exporter:9127']
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: alloy
+    static_configs:
+      - targets: ['alloy:12345']
+
+  - job_name: tempo
+    static_configs:
+      - targets: ['tempo:3200']
+
+  - job_name: loki
+    static_configs:
+      - targets: ['loki:3100']
