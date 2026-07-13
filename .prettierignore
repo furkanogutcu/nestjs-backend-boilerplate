@@ -1,0 +1,6 @@
+dist
+coverage
+pnpm-lock.yaml
+openapi.json
+CHANGELOG.md
+docs/archive
