@@ -1,0 +1,1 @@
+export const IDEMPOTENCY_LOCK_TTL_SECONDS = 30;
