@@ -7,6 +7,7 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -14,6 +15,8 @@ import { ConsoleSpanExporter, ParentBasedSampler, TraceIdRatioBasedSampler } fro
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 import { env } from '@config/env.config';
+
+import { ScrubbingSpanExporter } from './scrubbing-span.exporter';
 
 const METRIC_EXPORT_INTERVAL_MS = 15000;
 
@@ -36,9 +39,13 @@ export function startTracing(): void {
     'deployment.environment': env.NODE_ENV,
   });
 
-  const traceExporter = env.OTEL_DEBUG
-    ? new ConsoleSpanExporter()
-    : new OTLPTraceExporter({ url: `${env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces` });
+  // ! Every exporter is wrapped: scrubbing at the SDK boundary is what keeps caller IPs and query strings
+  // ! out of the trace backend, and the console exporter is used in debug runs on real request data too.
+  const traceExporter = new ScrubbingSpanExporter(
+    env.OTEL_DEBUG
+      ? new ConsoleSpanExporter()
+      : new OTLPTraceExporter({ url: `${env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces` }),
+  );
 
   sdk = new NodeSDK({
     resource,
@@ -63,6 +70,7 @@ export function startTracing(): void {
       new NestInstrumentation(),
       new PgInstrumentation({ requireParentSpan: true }),
       new IORedisInstrumentation({ requireParentSpan: true, dbStatementSerializer: (command) => command }),
+      new RuntimeNodeInstrumentation(),
     ],
   });
 

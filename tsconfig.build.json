@@ -8,10 +8,10 @@
     "test",
     "dist",
     "**/*spec.ts",
-    "vitest.config.ts",
-    "vitest.integration.config.ts",
-    "vitest.e2e.config.ts",
-    "vitest.shared.ts",
+    "vitest.config.mts",
+    "vitest.integration.config.mts",
+    "vitest.e2e.config.mts",
+    "vitest.shared.mts",
     "**/*.integration-spec.ts"
   ]
 }

@@ -78,6 +78,7 @@ vi.mock('@opentelemetry/instrumentation-ioredis', () => ({
 }));
 vi.mock('@opentelemetry/instrumentation-nestjs-core', () => ({ NestInstrumentation: vi.fn() }));
 vi.mock('@opentelemetry/instrumentation-pg', () => ({ PgInstrumentation: vi.fn() }));
+vi.mock('@opentelemetry/instrumentation-runtime-node', () => ({ RuntimeNodeInstrumentation: vi.fn() }));
 
 vi.mock('@opentelemetry/resources', () => ({
   resourceFromAttributes: (attrs: unknown) => resourceFromAttributesMock(attrs),
@@ -91,11 +92,6 @@ vi.mock('@opentelemetry/sdk-trace-node', () => ({
   }),
   ParentBasedSampler: vi.fn(),
   TraceIdRatioBasedSampler: vi.fn(),
-}));
-
-vi.mock('@opentelemetry/semantic-conventions', () => ({
-  ATTR_SERVICE_NAME: 'service.name',
-  ATTR_SERVICE_VERSION: 'service.version',
 }));
 
 async function loadTracing(): Promise<{ startTracing: () => void }> {

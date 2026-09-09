@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-import { alias, setupFiles, swcPlugin } from './vitest.shared';
+import { alias, setupFiles, swcPlugin } from './vitest.shared.mjs';
 
 export default defineConfig({
   plugins: [swcPlugin],
