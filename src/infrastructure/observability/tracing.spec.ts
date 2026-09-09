@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-require-imports -- isolateModules requires a dynamic require per scenario */
 import type { IncomingMessage } from 'http';
+import type { MockInstance } from 'vitest';
 
 // * A mutable env the mock reads by reference; each test sets fields before loading the module.
 const mockEnv = {
@@ -12,95 +12,102 @@ const mockEnv = {
   NODE_ENV: 'test',
 };
 
-jest.mock('@config/env.config', () => ({ env: mockEnv }));
+vi.mock('@config/env.config', () => ({ env: mockEnv }));
 
-const startMock = jest.fn();
-const shutdownMock = jest.fn<Promise<void>, []>();
-const nodeSdkMock = jest.fn().mockImplementation(() => ({ start: startMock, shutdown: shutdownMock }));
+const startMock = vi.fn();
+const shutdownMock = vi.fn<() => Promise<void>>();
+const nodeSdkMock = vi.fn().mockImplementation(function () {
+  return { start: startMock, shutdown: shutdownMock };
+});
 
-const setLoggerMock = jest.fn();
-const diagErrorMock = jest.fn();
+const setLoggerMock = vi.fn();
+const diagErrorMock = vi.fn();
 
 let capturedHttpOptions: { ignoreIncomingRequestHook?: (req: IncomingMessage) => boolean } = {};
 
-const otlpExporterMock = jest.fn();
-const otlpMetricExporterMock = jest.fn();
-const metricReaderMock = jest.fn();
-const consoleExporterMock = jest.fn();
-const resourceFromAttributesMock = jest.fn().mockReturnValue({ resource: true });
+const otlpExporterMock = vi.fn();
+const otlpMetricExporterMock = vi.fn();
+const metricReaderMock = vi.fn();
+const consoleExporterMock = vi.fn();
+const resourceFromAttributesMock = vi.fn().mockReturnValue({ resource: true });
 
-jest.mock('@opentelemetry/api', () => ({
+vi.mock('@opentelemetry/api', () => ({
   diag: {
     setLogger: (...args: unknown[]) => setLoggerMock(...args),
     error: (...args: unknown[]) => diagErrorMock(...args),
   },
-  DiagConsoleLogger: jest.fn(),
+  DiagConsoleLogger: vi.fn(),
   DiagLogLevel: { DEBUG: 'DEBUG' },
 }));
 
-jest.mock('@opentelemetry/core', () => ({
-  CompositePropagator: jest.fn(),
-  W3CBaggagePropagator: jest.fn(),
-  W3CTraceContextPropagator: jest.fn(),
+vi.mock('@opentelemetry/core', () => ({
+  CompositePropagator: vi.fn(),
+  W3CBaggagePropagator: vi.fn(),
+  W3CTraceContextPropagator: vi.fn(),
 }));
 
-jest.mock('@opentelemetry/exporter-trace-otlp-proto', () => ({
-  OTLPTraceExporter: jest.fn().mockImplementation((opts: unknown) => otlpExporterMock(opts)),
+vi.mock('@opentelemetry/exporter-trace-otlp-proto', () => ({
+  OTLPTraceExporter: vi.fn().mockImplementation(function (opts: unknown) {
+    return otlpExporterMock(opts);
+  }),
 }));
 
-jest.mock('@opentelemetry/exporter-metrics-otlp-proto', () => ({
-  OTLPMetricExporter: jest.fn().mockImplementation((opts: unknown) => otlpMetricExporterMock(opts)),
+vi.mock('@opentelemetry/exporter-metrics-otlp-proto', () => ({
+  OTLPMetricExporter: vi.fn().mockImplementation(function (opts: unknown) {
+    return otlpMetricExporterMock(opts);
+  }),
 }));
 
-jest.mock('@opentelemetry/sdk-metrics', () => ({
-  PeriodicExportingMetricReader: jest.fn().mockImplementation((opts: unknown) => metricReaderMock(opts)),
+vi.mock('@opentelemetry/sdk-metrics', () => ({
+  PeriodicExportingMetricReader: vi.fn().mockImplementation(function (opts: unknown) {
+    return metricReaderMock(opts);
+  }),
 }));
 
-jest.mock('@opentelemetry/instrumentation-express', () => ({ ExpressInstrumentation: jest.fn() }));
-jest.mock('@opentelemetry/instrumentation-http', () => ({
-  HttpInstrumentation: jest.fn().mockImplementation((opts: typeof capturedHttpOptions) => {
+vi.mock('@opentelemetry/instrumentation-express', () => ({ ExpressInstrumentation: vi.fn() }));
+vi.mock('@opentelemetry/instrumentation-http', () => ({
+  HttpInstrumentation: vi.fn().mockImplementation(function (opts: typeof capturedHttpOptions) {
     capturedHttpOptions = opts;
   }),
 }));
 let capturedIoredisOptions: { dbStatementSerializer?: (command: string) => string } = {};
-jest.mock('@opentelemetry/instrumentation-ioredis', () => ({
-  IORedisInstrumentation: jest.fn().mockImplementation((opts: typeof capturedIoredisOptions) => {
+vi.mock('@opentelemetry/instrumentation-ioredis', () => ({
+  IORedisInstrumentation: vi.fn().mockImplementation(function (opts: typeof capturedIoredisOptions) {
     capturedIoredisOptions = opts;
   }),
 }));
-jest.mock('@opentelemetry/instrumentation-nestjs-core', () => ({ NestInstrumentation: jest.fn() }));
-jest.mock('@opentelemetry/instrumentation-pg', () => ({ PgInstrumentation: jest.fn() }));
+vi.mock('@opentelemetry/instrumentation-nestjs-core', () => ({ NestInstrumentation: vi.fn() }));
+vi.mock('@opentelemetry/instrumentation-pg', () => ({ PgInstrumentation: vi.fn() }));
 
-jest.mock('@opentelemetry/resources', () => ({
+vi.mock('@opentelemetry/resources', () => ({
   resourceFromAttributes: (attrs: unknown) => resourceFromAttributesMock(attrs),
 }));
 
-jest.mock('@opentelemetry/sdk-node', () => ({ NodeSDK: nodeSdkMock }));
+vi.mock('@opentelemetry/sdk-node', () => ({ NodeSDK: nodeSdkMock }));
 
-jest.mock('@opentelemetry/sdk-trace-node', () => ({
-  ConsoleSpanExporter: jest.fn().mockImplementation(() => consoleExporterMock()),
-  ParentBasedSampler: jest.fn(),
-  TraceIdRatioBasedSampler: jest.fn(),
+vi.mock('@opentelemetry/sdk-trace-node', () => ({
+  ConsoleSpanExporter: vi.fn().mockImplementation(function () {
+    return consoleExporterMock();
+  }),
+  ParentBasedSampler: vi.fn(),
+  TraceIdRatioBasedSampler: vi.fn(),
 }));
 
-jest.mock('@opentelemetry/semantic-conventions', () => ({
+vi.mock('@opentelemetry/semantic-conventions', () => ({
   ATTR_SERVICE_NAME: 'service.name',
   ATTR_SERVICE_VERSION: 'service.version',
 }));
 
-function loadTracing(): { startTracing: () => void } {
-  let mod!: { startTracing: () => void };
+async function loadTracing(): Promise<{ startTracing: () => void }> {
+  // * The module starts tracing as an import side effect, so each case needs a fresh registry.
+  vi.resetModules();
 
-  jest.isolateModules(() => {
-    mod = require('./tracing') as { startTracing: () => void };
-  });
-
-  return mod;
+  return await import('./tracing.js');
 }
 
 describe('tracing', () => {
   // * Stub process.once so the SDK's SIGTERM registration is captured without leaking a real listener per loadTracing call.
-  let onceSpy: jest.SpyInstance;
+  let onceSpy: MockInstance;
 
   beforeEach(() => {
     mockEnv.OTEL_ENABLED = false;
@@ -110,42 +117,42 @@ describe('tracing', () => {
     shutdownMock.mockResolvedValue(undefined);
     capturedHttpOptions = {};
     capturedIoredisOptions = {};
-    onceSpy = jest.spyOn(process, 'once').mockReturnValue(process);
+    onceSpy = vi.spyOn(process, 'once').mockReturnValue(process);
   });
 
   describe('startup gate', () => {
-    it('does not boot the SDK when tracing is disabled', () => {
+    it('does not boot the SDK when tracing is disabled', async () => {
       mockEnv.OTEL_ENABLED = false;
       mockEnv.OTEL_DEBUG = false;
 
-      loadTracing();
+      await loadTracing();
 
       expect(nodeSdkMock).not.toHaveBeenCalled();
       expect(startMock).not.toHaveBeenCalled();
     });
 
-    it('boots the SDK when OTEL_ENABLED is true', () => {
+    it('boots the SDK when OTEL_ENABLED is true', async () => {
       mockEnv.OTEL_ENABLED = true;
 
-      loadTracing();
+      await loadTracing();
 
       expect(nodeSdkMock).toHaveBeenCalledTimes(1);
       expect(startMock).toHaveBeenCalledTimes(1);
     });
 
-    it('boots the SDK in debug mode even when OTEL_ENABLED is false', () => {
+    it('boots the SDK in debug mode even when OTEL_ENABLED is false', async () => {
       mockEnv.OTEL_ENABLED = false;
       mockEnv.OTEL_DEBUG = true;
 
-      loadTracing();
+      await loadTracing();
 
       expect(startMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not boot a second time once already started (idempotent)', () => {
+    it('does not boot a second time once already started (idempotent)', async () => {
       mockEnv.OTEL_ENABLED = true;
 
-      const mod = loadTracing();
+      const mod = await loadTracing();
       mod.startTracing();
 
       expect(startMock).toHaveBeenCalledTimes(1);
@@ -154,106 +161,109 @@ describe('tracing', () => {
   });
 
   describe('exporter and logger selection', () => {
-    it('uses the OTLP exporter and no debug logger in production mode', () => {
+    it('uses the OTLP exporter and no debug logger in production mode', async () => {
       mockEnv.OTEL_ENABLED = true;
       mockEnv.OTEL_DEBUG = false;
 
-      loadTracing();
+      await loadTracing();
 
       expect(otlpExporterMock).toHaveBeenCalledWith({ url: 'http://otel-collector:4318/v1/traces' });
       expect(consoleExporterMock).not.toHaveBeenCalled();
       expect(setLoggerMock).not.toHaveBeenCalled();
     });
 
-    it('exports metrics to the OTLP metrics endpoint on a fixed interval', () => {
+    it('exports metrics to the OTLP metrics endpoint on a fixed interval', async () => {
       mockEnv.OTEL_ENABLED = true;
 
-      loadTracing();
+      await loadTracing();
 
       expect(otlpMetricExporterMock).toHaveBeenCalledWith({ url: 'http://otel-collector:4318/v1/metrics' });
       expect(metricReaderMock).toHaveBeenCalledWith(expect.objectContaining({ exportIntervalMillis: 15000 }));
     });
 
-    it('uses the console exporter and a debug logger in debug mode', () => {
+    it('uses the console exporter and a debug logger in debug mode', async () => {
       mockEnv.OTEL_DEBUG = true;
 
-      loadTracing();
+      await loadTracing();
 
       expect(consoleExporterMock).toHaveBeenCalledTimes(1);
       expect(otlpExporterMock).not.toHaveBeenCalled();
       expect(setLoggerMock).toHaveBeenCalledTimes(1);
     });
 
-    it('falls back to an "unknown" service version when SERVICE_RELEASE is unset', () => {
+    it('falls back to an "unknown" service version when SERVICE_RELEASE is unset', async () => {
       mockEnv.OTEL_ENABLED = true;
       mockEnv.SERVICE_RELEASE = 'unknown';
 
-      loadTracing();
+      await loadTracing();
 
       expect(resourceFromAttributesMock).toHaveBeenCalledWith(
         expect.objectContaining({ 'service.name': 'app', 'service.version': 'unknown' }),
       );
     });
 
-    it('uses SERVICE_RELEASE as the service version when present', () => {
+    it('uses SERVICE_RELEASE as the service version when present', async () => {
       mockEnv.OTEL_ENABLED = true;
       mockEnv.SERVICE_RELEASE = '1.2.3';
 
-      loadTracing();
+      await loadTracing();
 
       expect(resourceFromAttributesMock).toHaveBeenCalledWith(expect.objectContaining({ 'service.version': '1.2.3' }));
     });
   });
 
   describe('ignoreIncomingRequestHook', () => {
-    function hookFor(url: string | undefined): boolean {
+    async function hookFor(url: string | undefined): Promise<boolean> {
       mockEnv.OTEL_ENABLED = true;
-      loadTracing();
+      await loadTracing();
 
       return capturedHttpOptions.ignoreIncomingRequestHook!({ url } as IncomingMessage);
     }
 
-    it.each([['/health'], ['/api/v1/health'], ['/api/v1/health/ready']])('ignores the operational path %s', (url) => {
-      expect(hookFor(url)).toBe(true);
+    it.each([['/health'], ['/api/v1/health'], ['/api/v1/health/ready']])(
+      'ignores the operational path %s',
+      async (url) => {
+        expect(await hookFor(url)).toBe(true);
+      },
+    );
+
+    it.each([['/api/v1/orders'], ['/'], ['/users/123']])('traces the business path %s', async (url) => {
+      expect(await hookFor(url)).toBe(false);
     });
 
-    it.each([['/api/v1/orders'], ['/'], ['/users/123']])('traces the business path %s', (url) => {
-      expect(hookFor(url)).toBe(false);
-    });
-
-    it('matches operational paths by prefix (a documented over-match)', () => {
+    it('matches operational paths by prefix (a documented over-match)', async () => {
       // * The hook uses startsWith, so any path sharing an operational prefix is also ignored.
-      expect(hookFor('/healthz-internal')).toBe(true);
+      expect(await hookFor('/healthz-internal')).toBe(true);
     });
 
-    it('treats a missing url as a business path', () => {
-      expect(hookFor(undefined)).toBe(false);
+    it('treats a missing url as a business path', async () => {
+      expect(await hookFor(undefined)).toBe(false);
     });
   });
 
   describe('redis statement serializer', () => {
-    it('records the raw redis command as the db statement', () => {
+    it('records the raw redis command as the db statement', async () => {
       mockEnv.OTEL_ENABLED = true;
 
-      loadTracing();
+      await loadTracing();
 
       expect(capturedIoredisOptions.dbStatementSerializer!('GET user:42')).toBe('GET user:42');
     });
   });
 
   describe('graceful shutdown', () => {
-    function captureSigtermHandler(): () => void {
+    async function captureSigtermHandler(): Promise<() => void> {
       mockEnv.OTEL_ENABLED = true;
 
-      loadTracing();
+      await loadTracing();
 
       const call = onceSpy.mock.calls.find(([event]) => event === 'SIGTERM');
 
       return call![1] as () => void;
     }
 
-    it('shuts the SDK down on SIGTERM', () => {
-      const handler = captureSigtermHandler();
+    it('shuts the SDK down on SIGTERM', async () => {
+      const handler = await captureSigtermHandler();
 
       handler();
 
@@ -262,7 +272,7 @@ describe('tracing', () => {
 
     it('logs via diag when shutdown rejects', async () => {
       shutdownMock.mockRejectedValueOnce(new Error('shutdown failed'));
-      const handler = captureSigtermHandler();
+      const handler = await captureSigtermHandler();
 
       handler();
       await Promise.resolve();

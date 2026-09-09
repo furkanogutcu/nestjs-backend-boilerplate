@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { createHash } from 'crypto';
 import { Request } from 'express';
 import { lastValueFrom } from 'rxjs';

@@ -1,5 +1,6 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { createHash } from 'crypto';
+import type { Mock } from 'vitest';
 
 import { IDEMPOTENCY_LOCK_TTL_SECONDS } from '@infrastructure/idempotency/idempotency.constant';
 import { IdempotencyService } from '@infrastructure/idempotency/idempotency.service';
@@ -31,8 +32,8 @@ describe('AuthService', () => {
 
   describe('createGuest', () => {
     beforeEach(() => {
-      (usersRepository.create as unknown as jest.Mock).mockImplementation((dto: Partial<User>) => dto);
-      (usersRepository.save as unknown as jest.Mock).mockImplementation(
+      (usersRepository.create as unknown as Mock).mockImplementation((dto: Partial<User>) => dto);
+      (usersRepository.save as unknown as Mock).mockImplementation(
         async (entity: User) => await Promise.resolve(entity),
       );
       sessionService.issue.mockResolvedValue({
@@ -44,7 +45,7 @@ describe('AuthService', () => {
     it('persists an anonymous user, then issues a session for it', async () => {
       const result = await service.createGuest({ userAgent: 'jest' });
 
-      const userId = (usersRepository.create as unknown as jest.Mock).mock.calls[0][0].id as string;
+      const userId = (usersRepository.create as unknown as Mock).mock.calls[0][0].id as string;
       expect(userId).toEqual(expect.any(String));
       expect(usersRepository.create).toHaveBeenCalledWith({ id: userId, isAnonymous: true });
       expect(sessionService.issue).toHaveBeenCalledWith({ userId, userAgent: 'jest', linked: false });

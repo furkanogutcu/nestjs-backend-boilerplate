@@ -1,6 +1,7 @@
 import './all-repositories.extension';
 
 import { FindManyOptions, ObjectLiteral, Repository } from 'typeorm';
+import type { Mock } from 'vitest';
 
 import { AppInternalException } from '@shared/exceptions/internal.exception';
 import { CursorPaginated } from '@shared/responses/cursor-paginated.response';
@@ -15,7 +16,7 @@ async function listWithOffsetPagination({
   findAndCount,
   options,
 }: {
-  findAndCount: jest.Mock;
+  findAndCount: Mock;
   options?: FindManyOptions<Row>;
 }): Promise<OffsetPaginated<Row>> {
   const repoLike = { findAndCount } as unknown as Repository<ObjectLiteral>;
@@ -25,7 +26,7 @@ async function listWithOffsetPagination({
 
 describe('Repository.listWithOffsetPagination', () => {
   it('returns a OffsetPaginated instance with computed meta', async () => {
-    const findAndCount = jest.fn().mockResolvedValue([[{ id: 1 }], 25]);
+    const findAndCount = vi.fn().mockResolvedValue([[{ id: 1 }], 25]);
 
     const result = await listWithOffsetPagination({ findAndCount, options: { skip: 0, take: 10 } });
 
@@ -35,7 +36,7 @@ describe('Repository.listWithOffsetPagination', () => {
   });
 
   it('defaults skip to 0 when only take is provided', async () => {
-    const findAndCount = jest.fn().mockResolvedValue([[{ id: 1 }], 25]);
+    const findAndCount = vi.fn().mockResolvedValue([[{ id: 1 }], 25]);
 
     const result = await listWithOffsetPagination({ findAndCount, options: { take: 10 } });
 
@@ -43,7 +44,7 @@ describe('Repository.listWithOffsetPagination', () => {
   });
 
   it('derives the current page from skip and take', async () => {
-    const findAndCount = jest.fn().mockResolvedValue([[{ id: 21 }], 25]);
+    const findAndCount = vi.fn().mockResolvedValue([[{ id: 21 }], 25]);
 
     const result = await listWithOffsetPagination({ findAndCount, options: { skip: 20, take: 10 } });
 
@@ -51,7 +52,7 @@ describe('Repository.listWithOffsetPagination', () => {
   });
 
   it('falls back to total as page_size when take is absent', async () => {
-    const findAndCount = jest.fn().mockResolvedValue([[{ id: 1 }, { id: 2 }, { id: 3 }], 3]);
+    const findAndCount = vi.fn().mockResolvedValue([[{ id: 1 }, { id: 2 }, { id: 3 }], 3]);
 
     const result = await listWithOffsetPagination({ findAndCount });
 
@@ -59,7 +60,7 @@ describe('Repository.listWithOffsetPagination', () => {
   });
 
   it('reports zero pages when there are no items and no page size', async () => {
-    const findAndCount = jest.fn().mockResolvedValue([[], 0]);
+    const findAndCount = vi.fn().mockResolvedValue([[], 0]);
 
     const result = await listWithOffsetPagination({ findAndCount });
 
@@ -80,13 +81,13 @@ function deriveRaw(rows: CursorRow[]): CursorRawRow[] {
 
 function createQueryBuilderStub({ rows, raw }: { rows: CursorRow[]; raw?: CursorRawRow[] }) {
   const queryBuilder = {
-    setFindOptions: jest.fn().mockReturnThis(),
-    andWhere: jest.fn().mockReturnThis(),
-    orderBy: jest.fn().mockReturnThis(),
-    addOrderBy: jest.fn().mockReturnThis(),
-    addSelect: jest.fn().mockReturnThis(),
-    take: jest.fn().mockReturnThis(),
-    getRawAndEntities: jest.fn().mockResolvedValue({ entities: rows, raw: raw ?? deriveRaw(rows) }),
+    setFindOptions: vi.fn().mockReturnThis(),
+    andWhere: vi.fn().mockReturnThis(),
+    orderBy: vi.fn().mockReturnThis(),
+    addOrderBy: vi.fn().mockReturnThis(),
+    addSelect: vi.fn().mockReturnThis(),
+    take: vi.fn().mockReturnThis(),
+    getRawAndEntities: vi.fn().mockResolvedValue({ entities: rows, raw: raw ?? deriveRaw(rows) }),
   };
 
   return queryBuilder;
@@ -109,7 +110,7 @@ function createCursorRepo({
       findColumnWithPropertyName: (property: string) =>
         (knownColumns ?? ['id', 'created_at']).includes(property) ? { databaseName: property } : undefined,
     },
-    createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
+    createQueryBuilder: vi.fn().mockReturnValue(queryBuilder),
   } as unknown as Repository<ObjectLiteral>;
 
   return { repoLike, queryBuilder };

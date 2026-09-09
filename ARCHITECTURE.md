@@ -221,16 +221,18 @@ domain modules (a single queue-name registry).
 
 ## Tests
 
-- **Unit / integration**: co-located `*.spec.ts` next to the file under test (NestJS default).
+- **Unit**: co-located `*.spec.ts` next to the file under test (NestJS default).
   E.g. `modules/users/users.service.spec.ts`, `modules/users/profile/profile.controller.spec.ts`.
-  Picked up by the root jest config (`testRegex: .*\.spec\.ts$`, `rootDir: src`).
-- **End-to-end**: `test/*.e2e-spec.ts` via `test/jest-e2e.json`; because e2e runs the entire HTTP app.
+  Picked up by `vitest.config.ts` (`include: src/**/*.spec.ts`).
+- **Integration**: co-located `*.integration-spec.ts`, run against real Postgres/Redis containers via
+  `vitest.integration.config.ts`.
+- **End-to-end**: `test/*.e2e-spec.ts` via `vitest.e2e.config.ts`; because e2e runs the entire HTTP app.
 - Shared e2e helpers/factories/mocks live under `test/`.
 
 ## Naming conventions
 
 - Files: `kebab-case.<type>.ts` — e.g. `users.controller.ts`, `create-user.request.ts`,
-  `user.response.ts`, `queue.enum.ts`, `consumer-groups.constant.ts`, `global.filter.ts`.
+  `user.response.ts`, `queue.enum.ts`, `sensitive-headers.constant.ts`, `global.filter.ts`.
 - Zod schemas: `*.request.ts` / `*.response.ts` for request/response; `*.schema.ts` for a
   standalone/shared schema.
 - Enums under `enums/` (`*.enum.ts`); constants under `constants/` (`*.constant.ts`).
@@ -251,8 +253,8 @@ domain modules (a single queue-name registry).
 
 ## Path aliases
 
-Cross-layer imports use aliases (defined in `tsconfig.json`, the `package.json` jest config, and
-`test/jest-e2e.json`); imports within the same subtree stay relative.
+Cross-layer imports use aliases (defined in `tsconfig.json` and mirrored in `vitest.shared.ts`);
+imports within the same subtree stay relative.
 
 | Alias               | Path                   |
 | ------------------- | ---------------------- |

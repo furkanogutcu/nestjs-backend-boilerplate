@@ -7,13 +7,13 @@ describe('ClockService', () => {
   const fixed = new Date('2026-06-04T10:00:00.000Z');
 
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(fixed);
+    vi.useFakeTimers();
+    vi.setSystemTime(fixed);
     clock = new ClockService();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('epochMillis returns the current instant as epoch milliseconds', () => {

@@ -11,7 +11,7 @@ description: >-
 
 # NestJS tests
 
-This project's tests are **`*.spec.ts` files co-located with the source** and run with Jest + ts-jest.
+This project's tests are **`*.spec.ts` files co-located with the source** and run with Vitest.
 The entire `shared` contract layer is at ~100% coverage and the suite is fully deterministic (no real
 network, DB, Redis, Kafka, or SMTP in unit specs). Keep it that way.
 
@@ -22,14 +22,14 @@ copy-paste example for every unit type in the repo.
 
 `src/config/env.config.ts` validates `process.env` at import time and calls `process.exit(1)` on
 failure. Because nearly every infrastructure module transitively imports `env`, **importing one of them
-inside a spec crashes the Jest worker when there is no valid env.** `test/jest.env-setup.ts`
-(a Jest `setupFiles` entry) guarantees this. Consequences:
+inside a spec crashes the Vitest worker when there is no valid env.** `test/env-setup.ts`
+(a Vitest `setupFiles` entry) guarantees this. Consequences:
 
 - Never do `import { env } from '@config/env.config'` in a spec just to read config. To test env
   validation, test `ENVSchema` directly from `@config/env.schema` (see
   `src/config/env.schema.spec.ts`).
 - If you need to change `env` for a unit (e.g. `SENTRY_DSN`, Kafka SASL), use
-  `jest.mock('@config/env.config', ...)` with a mutable object — see `global.filter.spec.ts` and
+  `vi.mock('@config/env.config', ...)` with a mutable object — see `global.filter.spec.ts` and
   `base-kafka-service.abstract.spec.ts`.
 
 Full rationale + fake-timer / seeded-random / luxon rules: `references/env-and-determinism.md`.
@@ -69,8 +69,8 @@ Only reach for `Test.createTestingModule` in integration/e2e where you want a re
 ## Mocking
 
 For fat interfaces (`Redis`, `Response`, `ExecutionContext`, `Reflector`, TypeORM
-`Repository`/`DataSource`, terminus services) use `@golevelup/ts-jest`'s `createMock<T>()`. It
-auto-stubs every method as a typed `jest.fn()` — no `as any` (ESLint already forbids it). On top of
+`Repository`/`DataSource`, terminus services) use `@golevelup/ts-vitest`'s `createMock<T>()`. It
+auto-stubs every method as a typed `vi.fn()` — no `as any` (ESLint already forbids it). On top of
 that, use the shared factories in **`@test/helpers`** (`createMockRequest/Response`,
 `createMockExecutionContext`, `createMockArgumentsHost`, `createMockReflector`, `createCallHandler`,
 `createMockRedis`, `createMockRepository/DataSource`, `getParamDecoratorFactory`). Signatures:
@@ -89,16 +89,16 @@ that, use the shared factories in **`@test/helpers`** (`createMockRequest/Respon
 
 ## Determinism (mandatory rules)
 
-- `jest.useFakeTimers()` for anything that touches `setTimeout`/`Date.now` (sleep, exponential-retry,
+- `vi.useFakeTimers()` for anything that touches `setTimeout`/`Date.now` (sleep, exponential-retry,
   Kafka reconnect, metrics interceptor, context middleware). Advance with `advanceTimersByTimeAsync`.
-- Fix randomness: `jest.spyOn(Math, 'random').mockReturnValue(0.5)` before asserting jitter.
-- For timestamps, `jest.setSystemTime(new Date('2026-01-01T00:00:00Z'))`; luxon is pinned to UTC in
-  `test/jest.setup.ts`.
+- Fix randomness: `vi.spyOn(Math, 'random').mockReturnValue(0.5)` before asserting jitter.
+- For timestamps, `vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))`; luxon is pinned to UTC in
+  `test/setup.ts`.
 - `clearMocks` + `restoreMocks` are on globally — undo the timers you set up in `afterEach`.
 
 ## Coverage
 
-- Run `pnpm test:cov`. The thresholds in `jest.config.ts` are a **regression floor, not a target** — the
+- Run `pnpm test:cov`. The thresholds in `vitest.config.ts` are a **regression floor, not a target** — the
   real value is ~100% statement/line.
 - Branch floors are intentionally below statement floors: `emitDecoratorMetadata` generates
   `__param`/`__metadata` helpers for every injected constructor and istanbul counts their branches as
@@ -150,7 +150,7 @@ match what it actually tests.
 - [ ] Don't test framework internals (whether it called the Nest handler) — test _your own_ branches.
 - [ ] Error paths covered: every `catch`, every `?? fallback`, every `instanceof` ternary you can reach
       without imitating framework internals.
-- [ ] `pnpm lint` and `pnpm typecheck` pass for the spec (ts-jest transpiles only via `isolatedModules`,
+- [ ] `pnpm lint` and `pnpm typecheck` pass for the spec (ts-vitest transpiles only via `isolatedModules`,
       so **the thing that type-checks your specs is `pnpm typecheck`** — run it).
 - [ ] Every `it('...')` name describes the scenario the test **actually runs** — the asserted logic
       isn't mocked away (name == scenario-tested rule).

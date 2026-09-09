@@ -1,12 +1,13 @@
 import { UnrecoverableError } from 'bullmq';
 import { Resend } from 'resend';
+import type { Mock } from 'vitest';
 
 import type { IMailMessage } from '@shared/interfaces/mail-transport.interface';
 
 import { ResendMailTransport } from './resend-mail.transport';
 
-jest.mock('resend');
-jest.mock('@config/env.config', () => ({ env: { RESEND_API_KEY: 're_test_key' } }));
+vi.mock('resend');
+vi.mock('@config/env.config', () => ({ env: { RESEND_API_KEY: 're_test_key' } }));
 
 const message: IMailMessage = {
   from: 'App <no-reply@app.test>',
@@ -16,12 +17,14 @@ const message: IMailMessage = {
 };
 
 describe('ResendMailTransport', () => {
-  let sendMock: jest.Mock;
+  let sendMock: Mock;
   let transport: ResendMailTransport;
 
   beforeEach(() => {
-    sendMock = jest.fn();
-    (Resend as unknown as jest.Mock).mockImplementation(() => ({ emails: { send: sendMock } }));
+    sendMock = vi.fn();
+    (Resend as unknown as Mock).mockImplementation(function () {
+      return { emails: { send: sendMock } };
+    });
     transport = new ResendMailTransport();
   });
 

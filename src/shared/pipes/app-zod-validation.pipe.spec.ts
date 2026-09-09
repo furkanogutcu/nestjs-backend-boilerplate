@@ -23,7 +23,7 @@ describe('AppZodValidationPipe', () => {
 
   it('rethrows non-ZodValidationException errors untouched', () => {
     const failure = new Error('unexpected pipe failure');
-    jest.spyOn(ZodValidationPipe.prototype, 'transform').mockImplementation(() => {
+    vi.spyOn(ZodValidationPipe.prototype, 'transform').mockImplementation(() => {
       throw failure;
     });
     const pipe = new AppZodValidationPipe(schema);
@@ -33,8 +33,8 @@ describe('AppZodValidationPipe', () => {
 
   it('rethrows a ZodValidationException that does not carry a ZodError', () => {
     const exception = new ZodValidationException(new z.ZodError([]));
-    jest.spyOn(exception, 'getZodError').mockReturnValue({});
-    jest.spyOn(ZodValidationPipe.prototype, 'transform').mockImplementation(() => {
+    vi.spyOn(exception, 'getZodError').mockReturnValue({});
+    vi.spyOn(ZodValidationPipe.prototype, 'transform').mockImplementation(() => {
       throw exception;
     });
     const pipe = new AppZodValidationPipe(schema);

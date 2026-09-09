@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Request, Response } from 'express';
 
 import { AppForbiddenException } from '@shared/exceptions/forbidden.exception';

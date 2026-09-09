@@ -3,5 +3,15 @@
   "compilerOptions": {
     "rootDir": "./src"
   },
-  "exclude": ["node_modules", "test", "dist", "jest.config.ts", "**/*spec.ts"]
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts",
+    "vitest.e2e.config.ts",
+    "vitest.shared.ts",
+    "**/*.integration-spec.ts"
+  ]
 }

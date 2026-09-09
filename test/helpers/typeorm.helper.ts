@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { DataSource, EntityManager, ObjectLiteral, Repository } from 'typeorm';
 
 import { InitSchema1783851505565 } from '@database/migrations/1783851505565-init-schema';

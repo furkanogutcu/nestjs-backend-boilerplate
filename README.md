@@ -46,19 +46,19 @@ OpenTelemetry · Resend · socket.io.
 
 ## Technology stack
 
-| Area                 | Technology                                                                  |
-| -------------------- | --------------------------------------------------------------------------- |
-| Framework            | NestJS 11, TypeScript, Express                                              |
-| Database             | PostgreSQL / TimescaleDB, TypeORM (`SnakeNamingStrategy`, app-side UUIDv7)  |
-| Cache / coordination | Redis (ioredis) — read-through cache + lock/rate-limit/idempotency/nonce    |
-| Messaging            | Kafka (kafkajs) — outbox/inbox/retry/DLQ                                    |
-| Job queue            | BullMQ                                                                      |
-| Validation           | Zod + nestjs-zod                                                            |
-| Realtime             | socket.io (+ Redis adapter, multi-instance fanout)                          |
-| Observability        | OpenTelemetry, Prometheus, pino, Sentry, Grafana/Loki/Tempo                 |
-| Mail                 | Resend (log driver fallback), handlebars template                           |
-| Auth crypto          | `@node-rs/argon2`, jose (JWT/JWK)                                           |
-| Quality              | ESLint, Prettier, Jest, husky, commitlint, semantic-release, GitHub Actions |
+| Area                 | Technology                                                                    |
+| -------------------- | ----------------------------------------------------------------------------- |
+| Framework            | NestJS 11, TypeScript, Express                                                |
+| Database             | PostgreSQL / TimescaleDB, TypeORM (`SnakeNamingStrategy`, app-side UUIDv7)    |
+| Cache / coordination | Redis (ioredis) — read-through cache + lock/rate-limit/idempotency/nonce      |
+| Messaging            | Kafka (kafkajs) — outbox/inbox/retry/DLQ                                      |
+| Job queue            | BullMQ                                                                        |
+| Validation           | Zod + nestjs-zod                                                              |
+| Realtime             | socket.io (+ Redis adapter, multi-instance fanout)                            |
+| Observability        | OpenTelemetry, Prometheus, pino, Sentry, Grafana/Loki/Tempo                   |
+| Mail                 | Resend (log driver fallback), handlebars template                             |
+| Auth crypto          | `@node-rs/argon2`, jose (JWT/JWK)                                             |
+| Quality              | ESLint, Prettier, Vitest, husky, commitlint, semantic-release, GitHub Actions |
 
 ## Quick start
 

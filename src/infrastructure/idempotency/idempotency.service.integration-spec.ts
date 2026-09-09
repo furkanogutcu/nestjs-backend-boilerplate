@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-vitest';
 import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis';
 import { Redis } from 'ioredis';
 
@@ -44,9 +44,9 @@ describe('IdempotencyService (integration)', () => {
 
     const first = await service.execute({
       ...args,
-      compute: jest.fn().mockResolvedValue({ token: 'secret-token-value' }),
+      compute: vi.fn().mockResolvedValue({ token: 'secret-token-value' }),
     });
-    const compute = jest.fn().mockResolvedValue({ token: 'a-different-token' });
+    const compute = vi.fn().mockResolvedValue({ token: 'a-different-token' });
     const second = await service.execute({ ...args, compute });
 
     expect(second).toEqual(first);
@@ -66,10 +66,10 @@ describe('IdempotencyService (integration)', () => {
       responseTtlSeconds: 60,
     };
 
-    await service.execute({ ...args, fingerprint: 'fp-1', compute: jest.fn().mockResolvedValue({ ok: true }) });
+    await service.execute({ ...args, fingerprint: 'fp-1', compute: vi.fn().mockResolvedValue({ ok: true }) });
 
     await expect(
-      service.execute({ ...args, fingerprint: 'fp-2', compute: jest.fn().mockResolvedValue({ ok: true }) }),
+      service.execute({ ...args, fingerprint: 'fp-2', compute: vi.fn().mockResolvedValue({ ok: true }) }),
     ).rejects.toBeInstanceOf(AppBadRequestException);
   });
 
@@ -81,7 +81,7 @@ describe('IdempotencyService (integration)', () => {
       fingerprint: 'fp',
       lockTtlSeconds: 30,
       responseTtlSeconds: 60,
-      compute: jest.fn().mockResolvedValue({ token: 'victim-token' }),
+      compute: vi.fn().mockResolvedValue({ token: 'victim-token' }),
     });
     const [victimSlot] = await redis.keys('*');
     const victimCiphertext = (await redis.get(victimSlot)) as string;
@@ -94,11 +94,11 @@ describe('IdempotencyService (integration)', () => {
       lockTtlSeconds: 30,
       responseTtlSeconds: 60,
     };
-    await service.execute({ ...attackerArgs, compute: jest.fn().mockResolvedValue({ token: 'attacker-token' }) });
+    await service.execute({ ...attackerArgs, compute: vi.fn().mockResolvedValue({ token: 'attacker-token' }) });
     const [attackerSlot] = (await redis.keys('*')).filter((key) => key !== victimSlot);
     await redis.set(attackerSlot, victimCiphertext);
 
-    const recompute = jest.fn().mockResolvedValue({ token: 'recomputed-token' });
+    const recompute = vi.fn().mockResolvedValue({ token: 'recomputed-token' });
     const result = await service.execute({ ...attackerArgs, compute: recompute });
 
     expect(recompute).toHaveBeenCalledTimes(1);
@@ -120,7 +120,7 @@ describe('IdempotencyService (integration)', () => {
     const entered = new Promise<void>((resolve) => (signalEntered = resolve));
     const barrier = new Promise<void>((resolve) => (releaseFirst = resolve));
 
-    const firstCompute = jest.fn().mockImplementation(async () => {
+    const firstCompute = vi.fn().mockImplementation(async () => {
       signalEntered();
       await barrier;
 
@@ -130,7 +130,7 @@ describe('IdempotencyService (integration)', () => {
     const firstFlight = service.execute({ ...args, compute: firstCompute });
     await entered;
 
-    const secondCompute = jest.fn();
+    const secondCompute = vi.fn();
     await expect(service.execute({ ...args, compute: secondCompute })).rejects.toBeInstanceOf(
       AppIdempotencyInProgressException,
     );
@@ -140,7 +140,7 @@ describe('IdempotencyService (integration)', () => {
     await expect(firstFlight).resolves.toEqual({ token: 'first' });
     expect(firstCompute).toHaveBeenCalledTimes(1);
 
-    const retry = await service.execute({ ...args, compute: jest.fn() });
+    const retry = await service.execute({ ...args, compute: vi.fn() });
     expect(retry).toEqual({ token: 'first' });
   });
 
@@ -152,7 +152,7 @@ describe('IdempotencyService (integration)', () => {
       fingerprint: 'fp',
       lockTtlSeconds: 30,
       responseTtlSeconds: 120,
-      compute: jest.fn().mockResolvedValue({ ok: true }),
+      compute: vi.fn().mockResolvedValue({ ok: true }),
     });
 
     const [slot] = await redis.keys('*');
@@ -173,11 +173,11 @@ describe('IdempotencyService (integration)', () => {
     };
 
     await expect(
-      service.execute({ ...args, compute: jest.fn().mockRejectedValue(new Error('compute failed')) }),
+      service.execute({ ...args, compute: vi.fn().mockRejectedValue(new Error('compute failed')) }),
     ).rejects.toThrow('compute failed');
     expect(await redis.keys('*')).toHaveLength(0);
 
-    const retry = await service.execute({ ...args, compute: jest.fn().mockResolvedValue({ ok: true }) });
+    const retry = await service.execute({ ...args, compute: vi.fn().mockResolvedValue({ ok: true }) });
     expect(retry).toEqual({ ok: true });
   });
 
@@ -193,12 +193,12 @@ describe('IdempotencyService (integration)', () => {
     const a = await service.execute({
       ...base,
       principal: 'user-a',
-      compute: jest.fn().mockResolvedValue({ who: 'a' }),
+      compute: vi.fn().mockResolvedValue({ who: 'a' }),
     });
     const b = await service.execute({
       ...base,
       principal: 'user-b',
-      compute: jest.fn().mockResolvedValue({ who: 'b' }),
+      compute: vi.fn().mockResolvedValue({ who: 'b' }),
     });
 
     expect(a).toEqual({ who: 'a' });

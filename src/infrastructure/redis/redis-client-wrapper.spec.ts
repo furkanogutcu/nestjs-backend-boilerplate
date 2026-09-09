@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-vitest';
 import { Redis } from 'ioredis';
 
 import { AppServiceUnavailableException } from '@shared/exceptions/service-unavailable.exception';

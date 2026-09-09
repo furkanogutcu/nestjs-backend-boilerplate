@@ -9,7 +9,7 @@ describe('contextBuilder', () => {
   let next: NextFunction;
 
   beforeEach(() => {
-    next = jest.fn();
+    next = vi.fn();
   });
 
   it('sets the ip address from req.ip and calls next', () => {
@@ -30,13 +30,13 @@ describe('contextBuilder', () => {
   });
 
   it('stamps the context with the current timestamp', () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    vi.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
     const request = createMockRequest();
 
     contextBuilder(request, response, next);
 
     expect(request.context.timestamp).toBe(new Date('2026-01-01T00:00:00.000Z').getTime());
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

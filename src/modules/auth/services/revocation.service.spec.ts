@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
@@ -24,7 +24,7 @@ describe('RevocationService', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('writes a session revocation key with the access-token TTL', async () => {
@@ -40,7 +40,7 @@ describe('RevocationService', () => {
   });
 
   it('throws once the denylist write has exhausted its retries', async () => {
-    const errorLog = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    const errorLog = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     redis.set.mockRejectedValue(new Error('redis down'));
 
     await expect(service.revokeSession({ sessionId: 'session-1' })).rejects.toBeInstanceOf(
@@ -83,7 +83,7 @@ describe('RevocationService', () => {
   });
 
   it('opens the circuit after repeated database failures during fallback', async () => {
-    const errorLog = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    const errorLog = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     redis.exists.mockRejectedValue(new Error('redis down'));
     sessionsRepository.findOne.mockRejectedValue(new Error('db down'));
 
@@ -102,8 +102,8 @@ describe('RevocationService', () => {
   });
 
   it('closes the circuit again once the cooldown elapses and the database recovers', async () => {
-    jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    vi.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
     redis.exists.mockRejectedValue(new Error('redis down'));
     sessionsRepository.findOne.mockRejectedValue(new Error('db down'));
 
@@ -120,7 +120,7 @@ describe('RevocationService', () => {
     expect(sessionsRepository.findOne).toHaveBeenCalledTimes(5);
 
     // * After the cooldown the database is queried again, and a success resets the breaker.
-    jest.advanceTimersByTime(5001);
+    vi.advanceTimersByTime(5001);
     sessionsRepository.findOne.mockResolvedValue({ id: 'session-1', revokedAt: null } as Session);
     await expect(service.isRevoked({ sessionId: 'session-1', familyId: 'family-1' })).resolves.toBe(false);
     expect(sessionsRepository.findOne).toHaveBeenCalledTimes(6);

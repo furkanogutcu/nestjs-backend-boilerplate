@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Controller, Get, INestApplication, Logger, VersioningType } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { HealthCheckResult, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
@@ -253,7 +253,7 @@ describe('Auth protection (e2e)', () => {
 
   describe('protected routes honour the revocation denylist', () => {
     it('rejects an otherwise-valid token whose session has been revoked', async () => {
-      jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
       revocationService.isRevoked.mockResolvedValueOnce(true);
 
       const response = await request(app.getHttpServer())

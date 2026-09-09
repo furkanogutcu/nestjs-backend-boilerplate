@@ -1,6 +1,6 @@
 # Shared test helpers (`test/helpers`, imported via `@test/helpers`)
 
-Built on top of `@golevelup/ts-jest`'s `createMock`. Prefer these over hand-writing mocks so call sites
+Built on top of `@golevelup/ts-vitest`'s `createMock`. Prefer these over hand-writing mocks so call sites
 stay short and type-safe. Source: `test/helpers/*.helper.ts`.
 
 ## HTTP — `http.helper.ts`

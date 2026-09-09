@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 
 import { OAuthAccount } from '../entities/oauth-account.entity';
 import { User } from '../entities/user.entity';

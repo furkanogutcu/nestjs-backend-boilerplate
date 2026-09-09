@@ -1,5 +1,5 @@
 import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import pluralize from 'pluralize';
 import { getMetadataArgsStorage } from 'typeorm';
@@ -8,16 +8,15 @@ import { getMetadataArgsStorage } from 'typeorm';
 // Mirrors the `local/entity-table-name-plural` ESLint rule but asserts the resolved TypeORM
 // metadata name (also covering entities that omit the explicit @Entity('...') argument).
 describe('database table naming', () => {
-  const srcDir = join(__dirname, '..');
+  const srcDir = resolve(process.cwd(), 'src');
 
   const entityFiles = readdirSync(srcDir, { recursive: true })
     .map((entry) => entry.toString())
     .filter((file) => file.endsWith('.entity.ts'));
 
-  beforeAll(() => {
+  beforeAll(async () => {
     for (const file of entityFiles) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require(join(srcDir, file));
+      await import(join(srcDir, file));
     }
   });
 

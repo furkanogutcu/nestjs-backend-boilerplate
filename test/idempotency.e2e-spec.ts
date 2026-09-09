@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-vitest';
 import { Controller, INestApplication, Post } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
@@ -146,7 +146,7 @@ describe('Idempotency (e2e)', () => {
     const before = (await request(server).post('/idem').set('Idempotency-Key', 'c'.repeat(24)).expect(201)).body.data
       .value;
 
-    const getSpy = jest.spyOn(redis, 'get').mockRejectedValue(new Error('connection refused'));
+    const getSpy = vi.spyOn(redis, 'get').mockRejectedValue(new Error('connection refused'));
     const failed = await request(server).post('/idem').set('Idempotency-Key', 'd'.repeat(24)).expect(503);
     expect(failed.body.error).toMatchObject({ code: 'service_unavailable' });
     getSpy.mockRestore();

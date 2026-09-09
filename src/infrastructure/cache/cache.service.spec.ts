@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
@@ -23,7 +23,7 @@ describe('CacheService', () => {
 
     service = new CacheService(sensitiveService, redisService);
 
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
   });
 
   describe('get', () => {

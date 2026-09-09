@@ -1,6 +1,7 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Redis } from 'ioredis';
 import { Resend } from 'resend';
+import type { Mock } from 'vitest';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { RedisService } from '@infrastructure/redis/redis.service';
@@ -10,8 +11,8 @@ import { MailSuppressionReason } from '../enums/mail-suppression-reason.enum';
 import type { MailSuppressionRepository } from '../repositories/mail-suppression.repository';
 import { ResendWebhookService } from './resend-webhook.service';
 
-jest.mock('resend');
-jest.mock('@config/env.config', () => ({
+vi.mock('resend');
+vi.mock('@config/env.config', () => ({
   env: { RESEND_API_KEY: 're_test_key', RESEND_WEBHOOK_SECRET: 'whsec_test' },
 }));
 
@@ -19,14 +20,16 @@ const headers = { id: 'msg_1', timestamp: '1700000000', signature: 'v1,sig' };
 const payload = '{"type":"email.bounced"}';
 
 describe('ResendWebhookService', () => {
-  let verifyMock: jest.Mock;
+  let verifyMock: Mock;
   let suppressionRepository: DeepMocked<MailSuppressionRepository>;
   let redisClient: DeepMocked<Redis>;
   let service: ResendWebhookService;
 
   beforeEach(() => {
-    verifyMock = jest.fn();
-    (Resend as unknown as jest.Mock).mockImplementation(() => ({ webhooks: { verify: verifyMock } }));
+    verifyMock = vi.fn();
+    (Resend as unknown as Mock).mockImplementation(function () {
+      return { webhooks: { verify: verifyMock } };
+    });
     suppressionRepository = createMock<MailSuppressionRepository>();
     redisClient = createMock<Redis>();
     // * Default: this delivery is the first for its Svix id, so the inbox claim succeeds and processing runs.

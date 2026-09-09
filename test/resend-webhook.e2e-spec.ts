@@ -8,7 +8,7 @@ import { ResendWebhookService } from '@infrastructure/mail/webhooks/resend-webho
 
 describe('ResendWebhookController (e2e)', () => {
   let app: NestExpressApplication;
-  const handle = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined);
+  const handle = vi.fn<(a0: unknown) => Promise<void>>().mockResolvedValue(undefined);
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({

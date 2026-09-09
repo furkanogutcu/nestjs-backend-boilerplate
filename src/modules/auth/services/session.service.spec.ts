@@ -1,6 +1,7 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { createHash } from 'crypto';
 import { EntityManager } from 'typeorm';
+import type { Mock } from 'vitest';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
@@ -41,16 +42,16 @@ describe('SessionService', () => {
   let service: SessionService;
 
   beforeEach(() => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    vi.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
     sessionsRepository = createMock<SessionsRepository>();
     sessionsRepository.create.mockImplementation((session) => session as Session);
     sessionsRepository.save.mockImplementation(async (session) => await Promise.resolve(session as Session));
     sessionsRepository.find.mockResolvedValue([]);
     revocationService = createMock<RevocationService>();
     manager = createMockEntityManager();
-    (manager.create as unknown as jest.Mock).mockImplementation((...args: unknown[]) => args[1]);
-    (manager.save as unknown as jest.Mock).mockImplementation(async (entity: unknown) => await Promise.resolve(entity));
-    (manager.update as unknown as jest.Mock).mockResolvedValue({ affected: 1 });
+    (manager.create as unknown as Mock).mockImplementation((...args: unknown[]) => args[1]);
+    (manager.save as unknown as Mock).mockImplementation(async (entity: unknown) => await Promise.resolve(entity));
+    (manager.update as unknown as Mock).mockResolvedValue({ affected: 1 });
     service = new SessionService(
       sessionsRepository,
       createMockDataSource(manager),
@@ -60,7 +61,7 @@ describe('SessionService', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('issue', () => {

@@ -13,7 +13,7 @@ const message: IMailMessage = {
 
 describe('LogMailTransport', () => {
   it('logs the outgoing mail and returns a null id without sending', async () => {
-    const logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    const logSpy = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     const transport = new LogMailTransport();
 
     const result = await transport.send({ message });

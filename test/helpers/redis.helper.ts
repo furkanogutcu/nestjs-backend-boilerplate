@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Redis } from 'ioredis';
 
 export function createMockRedis(): DeepMocked<Redis> {

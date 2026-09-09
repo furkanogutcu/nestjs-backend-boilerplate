@@ -4,12 +4,12 @@ import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.except
 
 import { AppleTokenVerifier } from './apple-token-verifier.service';
 
-jest.mock('jose', () => ({
-  createRemoteJWKSet: jest.fn(() => jest.fn()),
-  jwtVerify: jest.fn(),
+vi.mock('jose', () => ({
+  createRemoteJWKSet: vi.fn(() => vi.fn()),
+  jwtVerify: vi.fn(),
 }));
 
-const mockedJwtVerify = jest.mocked(jwtVerify);
+const mockedJwtVerify = vi.mocked(jwtVerify);
 
 function resolveWith(payload: Record<string, unknown>): void {
   mockedJwtVerify.mockResolvedValue({ payload } as unknown as Awaited<ReturnType<typeof jwtVerify>>);

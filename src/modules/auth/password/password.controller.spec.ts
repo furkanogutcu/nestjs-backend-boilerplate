@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 
 import { User } from '../entities/user.entity';
 import { ICredentialsResult } from './interfaces/credentials-result.interface';

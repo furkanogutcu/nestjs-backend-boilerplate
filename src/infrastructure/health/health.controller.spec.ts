@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { HttpStatus, Logger } from '@nestjs/common';
 import {
   HealthCheckResult,
@@ -60,7 +60,7 @@ describe('HealthController', () => {
     });
 
     it('responds 503 and warns when a check fails with an Error', async () => {
-      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
       healthCheckService.check.mockRejectedValue(new Error('database down'));
 
       await controller.readiness(response);
@@ -71,7 +71,7 @@ describe('HealthController', () => {
     });
 
     it('responds 503 for a non-Error failure', async () => {
-      jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
       healthCheckService.check.mockRejectedValue('boom');
 
       await controller.readiness(response);
@@ -120,7 +120,7 @@ describe('HealthController', () => {
     });
 
     it('refreshes a cached unhealthy result to healthy after the TTL', async () => {
-      jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
       healthCheckService.check
         .mockRejectedValueOnce(new Error('database down'))
         .mockResolvedValueOnce({} as HealthCheckResult);

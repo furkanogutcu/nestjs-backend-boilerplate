@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Request, Response } from 'express';
 
 export function createMockRequest(overrides: Partial<Request> = {}): DeepMocked<Request> {

@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
@@ -21,7 +21,7 @@ describe('BaseIntervalProcessor', () => {
   });
 
   it('registers an interval scheduler and logs on bootstrap', async () => {
-    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
 
     await processor.onApplicationBootstrap();
 

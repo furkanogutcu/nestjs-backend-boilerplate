@@ -1,4 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
+import type { Mock } from 'vitest';
 
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 
@@ -6,11 +7,11 @@ import { GoogleTokenVerifier } from './google-token-verifier.service';
 
 describe('GoogleTokenVerifier', () => {
   let verifier: GoogleTokenVerifier;
-  let verifyIdToken: jest.Mock;
+  let verifyIdToken: Mock;
 
   beforeEach(() => {
     verifier = new GoogleTokenVerifier();
-    verifyIdToken = jest.fn();
+    verifyIdToken = vi.fn();
     (verifier as unknown as { client: OAuth2Client }).client = { verifyIdToken } as unknown as OAuth2Client;
   });
 

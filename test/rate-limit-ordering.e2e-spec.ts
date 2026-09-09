@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Controller, Get, INestApplication } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
@@ -72,7 +72,7 @@ describe('Rate-limit guard ordering (e2e)', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     rateLimitService.consumeByKey.mockResolvedValue(createMock<RateLimiterRes>({ msBeforeNext: 1000 }));
     rateLimitService.consume.mockResolvedValue(createMock<RateLimiterRes>({ consumedPoints: 1, msBeforeNext: 1000 }));
     revocationService.isRevoked.mockResolvedValue(false);

@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 
 import { OAuthProvider } from '../enums/oauth-provider.enum';
 import { IClientHeaders } from '../interfaces/client-headers.interface';

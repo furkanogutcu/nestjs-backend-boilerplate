@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
@@ -30,7 +30,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue(null);
     redis.set.mockResolvedValue('OK');
     sensitiveService.encrypt.mockReturnValue('encrypted');
-    const compute = jest.fn().mockResolvedValue({ value: 1 });
+    const compute = vi.fn().mockResolvedValue({ value: 1 });
 
     const result = await service.execute({ ...baseArgs, fingerprint: 'fp', compute });
 
@@ -49,7 +49,7 @@ describe('IdempotencyService', () => {
   it('returns the cached response without recomputing on a completed hit', async () => {
     redis.get.mockResolvedValue('encrypted');
     sensitiveService.decrypt.mockReturnValue({ state: 'completed', fingerprint: 'fp', response: { value: 1 } });
-    const compute = jest.fn();
+    const compute = vi.fn();
 
     const result = await service.execute({ ...baseArgs, fingerprint: 'fp', compute });
 
@@ -62,7 +62,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue('lock-token-abc|encrypted-ciphertext');
     sensitiveService.decrypt.mockReturnValue({ state: 'completed', fingerprint: 'fp', response: { ok: true } });
 
-    const result = await service.execute({ ...baseArgs, fingerprint: 'fp', compute: jest.fn() });
+    const result = await service.execute({ ...baseArgs, fingerprint: 'fp', compute: vi.fn() });
 
     expect(result).toEqual({ ok: true });
     expect(sensitiveService.decrypt).toHaveBeenCalledWith(expect.objectContaining({ input: 'encrypted-ciphertext' }));
@@ -72,7 +72,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue('encrypted');
     sensitiveService.decrypt.mockReturnValue({ state: 'completed', fingerprint: 'other', response: { value: 1 } });
 
-    await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute: jest.fn() })).rejects.toMatchObject({
+    await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute: vi.fn() })).rejects.toMatchObject({
       code: ExceptionCode.IdempotencyKeyConflict,
     });
   });
@@ -81,7 +81,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue('encrypted');
     sensitiveService.decrypt.mockReturnValue({ state: 'in_progress', fingerprint: 'fp' });
 
-    await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute: jest.fn() })).rejects.toBeInstanceOf(
+    await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute: vi.fn() })).rejects.toBeInstanceOf(
       AppIdempotencyInProgressException,
     );
   });
@@ -90,7 +90,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue('encrypted');
     sensitiveService.decrypt.mockReturnValue({ state: 'in_progress', fingerprint: 'other' });
 
-    await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute: jest.fn() })).rejects.toBeInstanceOf(
+    await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute: vi.fn() })).rejects.toBeInstanceOf(
       AppBadRequestException,
     );
   });
@@ -100,7 +100,7 @@ describe('IdempotencyService', () => {
     redis.set.mockResolvedValue(null as unknown as 'OK');
     sensitiveService.encrypt.mockReturnValue('encrypted');
     sensitiveService.decrypt.mockReturnValue({ state: 'in_progress', fingerprint: 'fp' });
-    const compute = jest.fn();
+    const compute = vi.fn();
 
     await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute })).rejects.toBeInstanceOf(
       AppIdempotencyInProgressException,
@@ -112,7 +112,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue(null);
     redis.set.mockResolvedValue('OK');
     sensitiveService.encrypt.mockReturnValue('encrypted');
-    const compute = jest.fn().mockRejectedValue(new Error('boom'));
+    const compute = vi.fn().mockRejectedValue(new Error('boom'));
 
     await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute })).rejects.toThrow('boom');
     expect(redis.eval).toHaveBeenCalledTimes(1);
@@ -124,8 +124,8 @@ describe('IdempotencyService', () => {
     // * eval here is the RELEASE_IF_OWNED script; its failure must not mask the compute error.
     redis.eval.mockRejectedValue(new Error('release script failed'));
     sensitiveService.encrypt.mockReturnValue('encrypted');
-    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-    const compute = jest.fn().mockRejectedValue(new Error('boom'));
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const compute = vi.fn().mockRejectedValue(new Error('boom'));
 
     await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute })).rejects.toThrow('boom');
 
@@ -134,7 +134,7 @@ describe('IdempotencyService', () => {
 
   it('fails closed with a 503 when the Redis read errors, without computing', async () => {
     redis.get.mockRejectedValue(new Error('redis down'));
-    const compute = jest.fn();
+    const compute = vi.fn();
 
     await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute })).rejects.toBeInstanceOf(
       AppServiceUnavailableException,
@@ -146,7 +146,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue(null);
     redis.set.mockRejectedValue(new Error('redis down'));
     sensitiveService.encrypt.mockReturnValue('encrypted');
-    const compute = jest.fn();
+    const compute = vi.fn();
 
     await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute })).rejects.toBeInstanceOf(
       AppServiceUnavailableException,
@@ -158,7 +158,7 @@ describe('IdempotencyService', () => {
     redis.get.mockResolvedValue(null);
     redis.set.mockResolvedValue(null as unknown as 'OK');
     sensitiveService.encrypt.mockReturnValue('encrypted');
-    const compute = jest.fn();
+    const compute = vi.fn();
 
     await expect(service.execute({ ...baseArgs, fingerprint: 'fp', compute })).rejects.toBeInstanceOf(
       AppServiceUnavailableException,
@@ -173,7 +173,7 @@ describe('IdempotencyService', () => {
     sensitiveService.decrypt.mockImplementation(() => {
       throw new Error('bad ciphertext');
     });
-    const compute = jest.fn().mockResolvedValue({ value: 3 });
+    const compute = vi.fn().mockResolvedValue({ value: 3 });
 
     const result = await service.execute({ ...baseArgs, fingerprint: 'fp', compute });
 
@@ -190,8 +190,8 @@ describe('IdempotencyService', () => {
     sensitiveService.decrypt.mockImplementation(() => {
       throw new Error('bad ciphertext');
     });
-    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-    const compute = jest.fn().mockResolvedValue({ value: 9 });
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const compute = vi.fn().mockResolvedValue({ value: 9 });
 
     const result = await service.execute({ ...baseArgs, fingerprint: 'fp', compute });
 
@@ -205,7 +205,7 @@ describe('IdempotencyService', () => {
     redis.set.mockResolvedValue('OK');
     redis.eval.mockRejectedValue(new Error('redis down'));
     sensitiveService.encrypt.mockReturnValue('encrypted');
-    const compute = jest.fn().mockResolvedValue({ value: 7 });
+    const compute = vi.fn().mockResolvedValue({ value: 7 });
 
     const result = await service.execute({ ...baseArgs, fingerprint: 'fp', compute });
 
@@ -218,11 +218,11 @@ describe('IdempotencyService', () => {
     redis.set.mockResolvedValue('OK');
     sensitiveService.encrypt.mockReturnValue('encrypted');
 
-    await service.execute({ ...baseArgs, principal: 'p1', fingerprint: '', compute: jest.fn().mockResolvedValue(1) });
+    await service.execute({ ...baseArgs, principal: 'p1', fingerprint: '', compute: vi.fn().mockResolvedValue(1) });
     const firstKey = redis.set.mock.calls[0][0];
     redis.set.mockClear();
 
-    await service.execute({ ...baseArgs, principal: 'p2', fingerprint: '', compute: jest.fn().mockResolvedValue(1) });
+    await service.execute({ ...baseArgs, principal: 'p2', fingerprint: '', compute: vi.fn().mockResolvedValue(1) });
     const secondKey = redis.set.mock.calls[0][0];
 
     expect(firstKey).not.toEqual(secondKey);

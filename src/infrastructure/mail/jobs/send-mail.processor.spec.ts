@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
@@ -42,7 +42,7 @@ describe('SendMailProcessor', () => {
   });
 
   it('logs when a job fails', () => {
-    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const error = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const job = { id: '1', attemptsMade: 2, opts: { attempts: 3 } } as Job<ISendMailParams>;
 
     processor.onFailed(job, new Error('smtp timeout'));
@@ -51,7 +51,7 @@ describe('SendMailProcessor', () => {
   });
 
   it('defaults the attempt count when opts.attempts is absent', () => {
-    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const error = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const job = { id: '1', attemptsMade: 1, opts: {} } as Job<ISendMailParams>;
 
     processor.onFailed(job, new Error('smtp timeout'));
@@ -60,7 +60,7 @@ describe('SendMailProcessor', () => {
   });
 
   it('logs on a worker error', () => {
-    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const error = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
     processor.onError(new Error('worker crashed'));
 

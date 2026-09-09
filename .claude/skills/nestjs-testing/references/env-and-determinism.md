@@ -1,6 +1,6 @@
 # Env and determinism
 
-## Why `test/jest.env-setup.ts` exists (and why it runs first)
+## Why `test/env-setup.ts` exists (and why it runs first)
 
 `src/config/env.config.ts`:
 
@@ -15,7 +15,7 @@ This code runs **at import time**. `RedisService`, `SensitiveService`, `MailServ
 moment a spec imports one of them, env validation runs. If there is no valid `process.env`, the worker
 calls `process.exit(1)` and the suite dies with a confusing error.
 
-`test/jest.env-setup.ts` is registered as a Jest `setupFiles` entry (it runs before the module registry
+`test/env-setup.ts` is registered as a Vitest `setupFiles` entry (it runs before the module registry
 loads any source) and fills in a syntactically valid env (`NODE_ENV=test`, postgres/redis URLs, a
 64-hex `ENCRYPTION_KEY`, etc.). It uses `??=`, so integration runs can override values from the shell.
 
@@ -26,32 +26,32 @@ loads any source) and fills in a syntactically valid env (`NODE_ENV=test`, postg
 - To change a single value for a unit (e.g. `SENTRY_DSN`, `KAFKA_SASL_MECHANISM`), mock the module:
 
   ```ts
-  jest.mock('@config/env.config', () => ({ env: { SENTRY_DSN: undefined /* ... */ } }));
+  vi.mock('@config/env.config', () => ({ env: { SENTRY_DSN: undefined /* ... */ } }));
   import { env } from '@config/env.config';
   (env as { SENTRY_DSN?: string }).SENTRY_DSN = 'https://...'; // change per test, reset in beforeEach
   ```
 
   Examples: `global.filter.spec.ts`, `base-kafka-service.abstract.spec.ts`.
 
-## `test/jest.setup.ts` (`setupFilesAfterEnv`)
+## `test/setup.ts` (`setupFilesAfterEnv`)
 
 `import 'reflect-metadata'` (needed for `emitDecoratorMetadata` output when classes are created with a
 plain `new`) and `Settings.defaultZone = 'utc'` (mirrors `main.ts`, keeps luxon deterministic).
 
 ## Determinism rules
 
-- **Timers**: `jest.useFakeTimers()` when the code calls `setTimeout`/`Date.now`. Drive async flows
-  with `await jest.advanceTimersByTimeAsync(ms)`. Undo it with `jest.useRealTimers()` in the test or in
+- **Timers**: `vi.useFakeTimers()` when the code calls `setTimeout`/`Date.now`. Drive async flows
+  with `await vi.advanceTimersByTimeAsync(ms)`. Undo it with `vi.useRealTimers()` in the test or in
   `afterEach`.
-- **Randomness**: `jest.spyOn(Math, 'random').mockReturnValue(0.5)` before asserting jittered values.
-- **System time**: `jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'))` when asserting a timestamp
+- **Randomness**: `vi.spyOn(Math, 'random').mockReturnValue(0.5)` before asserting jittered values.
+- **System time**: `vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'))` when asserting a timestamp
   (e.g. `context-builder.middleware.spec.ts`).
-- `clearMocks` + `restoreMocks` are on in `jest.config.ts`, so call counters and spies reset
+- `clearMocks` + `restoreMocks` are on in `vitest.config.ts`, so call counters and spies reset
   automatically between tests — but you still undo fake timers yourself.
 
 ## Coverage exclusions and their rationale
 
-`collectCoverageFrom` in `jest.config.ts` intentionally excludes:
+`collectCoverageFrom` in `vitest.config.ts` intentionally excludes:
 
 - `main.ts`, `instrument.ts`, `**/*.module.ts` — bootstrap/wiring. Testing these means "Nest is
   configured the way the code configured it": tautological and brittle. The e2e smoke proves the app

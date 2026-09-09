@@ -1,8 +1,9 @@
-import { DeepMocked } from '@golevelup/ts-jest';
+import { DeepMocked } from '@golevelup/ts-vitest';
 import { BadRequestException, HttpException, Logger } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
 import { Request, Response } from 'express';
 import { EntityNotFoundError, TypeORMError } from 'typeorm';
+import type { MockInstance } from 'vitest';
 import { z } from 'zod';
 
 import { createMockArgumentsHost, createMockRequest, createMockResponse } from '@test/helpers';
@@ -14,18 +15,18 @@ import { AppInternalException } from '../internal.exception';
 import { AppNotFoundException } from '../not-found.exception';
 import { GlobalExceptionFilter } from './global.filter';
 
-jest.mock('@config/env.config', () => ({ env: { NODE_ENV: 'test' } }));
-jest.mock('@opentelemetry/api', () => ({ trace: { getActiveSpan: jest.fn() } }));
+vi.mock('@config/env.config', () => ({ env: { NODE_ENV: 'test' } }));
+vi.mock('@opentelemetry/api', () => ({ trace: { getActiveSpan: vi.fn() } }));
 
 function mockActiveSpan(ids: { traceId: string; spanId: string } | undefined): void {
-  jest.mocked(trace.getActiveSpan).mockReturnValue(ids ? ({ spanContext: () => ids } as never) : undefined);
+  vi.mocked(trace.getActiveSpan).mockReturnValue(ids ? ({ spanContext: () => ids } as never) : undefined);
 }
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;
   let request: DeepMocked<Request>;
   let response: DeepMocked<Response>;
-  let loggerError: jest.SpyInstance;
+  let loggerError: MockInstance;
 
   function catchException(exception: unknown): IErrorResponse<unknown> {
     filter.catch(exception, createMockArgumentsHost({ request, response }));
@@ -38,7 +39,7 @@ describe('GlobalExceptionFilter', () => {
     request = createMockRequest({ url: '/orders', method: 'POST', headers: {} });
     response = createMockResponse();
 
-    loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    loggerError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     mockActiveSpan(undefined);
   });
 

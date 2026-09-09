@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 

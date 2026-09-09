@@ -1,8 +1,9 @@
 import { once } from 'node:events';
 
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { createSign, generateKeyPairSync, KeyObject } from 'crypto';
 import { Redis } from 'ioredis';
+import type { Mock } from 'vitest';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { RedisService } from '@infrastructure/redis/redis.service';
@@ -35,8 +36,8 @@ const certState: {
   chainValid: true,
 };
 
-jest.mock('crypto', () => {
-  const actual = jest.requireActual<typeof import('crypto')>('crypto');
+vi.mock('crypto', async () => {
+  const actual = await vi.importActual<typeof import('crypto')>('crypto');
 
   class MockX509Certificate {
     private readonly leaf: boolean;
@@ -96,7 +97,7 @@ describe('GameCenterVerifier', () => {
     redisService.getClient.mockReturnValue(redis);
     verifier = new GameCenterVerifier(redisService, new ClockService());
 
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: { get: () => null },
       arrayBuffer: async () => await Promise.resolve(new ArrayBuffer(0)),
@@ -160,15 +161,15 @@ describe('GameCenterVerifier', () => {
       await verifier.verify(buildAssertion({ teamPlayerId: `G:${index}`, publicKeyUrl: path(index) }));
     }
 
-    const fetchesAfterFill = (global.fetch as jest.Mock).mock.calls.length;
+    const fetchesAfterFill = (global.fetch as Mock).mock.calls.length;
 
     await verifier.verify(
       buildAssertion({ teamPlayerId: 'G:newest', publicKeyUrl: path(GAME_CENTER_CERT_CACHE_MAX_ENTRIES) }),
     );
-    expect((global.fetch as jest.Mock).mock.calls.length).toBe(fetchesAfterFill);
+    expect((global.fetch as Mock).mock.calls.length).toBe(fetchesAfterFill);
 
     await verifier.verify(buildAssertion({ teamPlayerId: 'G:evicted', publicKeyUrl: path(0) }));
-    expect((global.fetch as jest.Mock).mock.calls.length).toBe(fetchesAfterFill + 1);
+    expect((global.fetch as Mock).mock.calls.length).toBe(fetchesAfterFill + 1);
   });
 
   it('accepts the sandbox Game Center host', async () => {
@@ -222,7 +223,7 @@ describe('GameCenterVerifier', () => {
   });
 
   it('rejects when the certificate endpoint returns a non-ok response', async () => {
-    global.fetch = jest
+    global.fetch = vi
       .fn()
       .mockResolvedValue({ ok: false, arrayBuffer: async () => await Promise.resolve(new ArrayBuffer(0)) });
 
@@ -230,24 +231,24 @@ describe('GameCenterVerifier', () => {
   });
 
   it('normalizes an unexpected certificate fetch failure to an invalid-signature rejection', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('network down'));
+    global.fetch = vi.fn().mockRejectedValue(new Error('network down'));
 
     await expect(verifier.verify(buildAssertion())).rejects.toBeInstanceOf(AppUnauthorizedException);
   });
 
   it('aborts and rejects when the certificate fetch exceeds the timeout', async () => {
-    jest.useFakeTimers();
-    global.fetch = jest.fn().mockImplementation(async (...args: unknown[]) => {
+    vi.useFakeTimers();
+    global.fetch = vi.fn().mockImplementation(async (...args: unknown[]) => {
       const { signal } = args[1] as { signal: AbortSignal };
       await once(signal, 'abort');
       throw new Error('aborted');
     });
 
     const assertion = expect(verifier.verify(buildAssertion())).rejects.toBeInstanceOf(AppUnauthorizedException);
-    await jest.advanceTimersByTimeAsync(GAME_CENTER_FETCH_TIMEOUT_MS);
+    await vi.advanceTimersByTimeAsync(GAME_CENTER_FETCH_TIMEOUT_MS);
     await assertion;
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('rejects a signature whose timestamp is stale', async () => {
@@ -290,7 +291,7 @@ describe('GameCenterVerifier', () => {
   });
 
   it('rejects a certificate response whose declared size exceeds the cap', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: { get: (name: string) => (name === 'content-length' ? String(GAME_CENTER_CERT_MAX_BYTES + 1) : null) },
       arrayBuffer: async () => await Promise.resolve(new ArrayBuffer(0)),

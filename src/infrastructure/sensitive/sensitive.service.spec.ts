@@ -6,7 +6,7 @@ import { SensitiveService } from './sensitive.service';
 const VALID_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
 // * jest.mock is hoisted above imports, so the factory inlines values; we grab a mutable reference to the mocked env to drive the construction guard.
-jest.mock('@config/env.config', () => ({
+vi.mock('@config/env.config', () => ({
   env: {
     ENCRYPTION_KEYS: { k1: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef' },
     ENCRYPTION_ACTIVE_KID: 'k1',

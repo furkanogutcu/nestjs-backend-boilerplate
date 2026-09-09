@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-vitest';
 import { CallHandler, ExecutionContext } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { firstValueFrom, of } from 'rxjs';

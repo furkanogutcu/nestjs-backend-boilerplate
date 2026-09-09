@@ -1,9 +1,10 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Controller, Get, INestApplication, VersioningType } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import request from 'supertest';
+import type { Mock } from 'vitest';
 import { z } from 'zod';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
@@ -62,7 +63,7 @@ describe('Auth (e2e)', () => {
     revocationService.isRevoked.mockResolvedValue(false);
 
     const idempotencyService = createMock<IdempotencyService>();
-    (idempotencyService.execute as unknown as jest.Mock).mockImplementation(
+    (idempotencyService.execute as unknown as Mock).mockImplementation(
       async (options: { compute: () => Promise<unknown> }) => await options.compute(),
     );
 

@@ -1,4 +1,4 @@
-import { createMock } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-vitest';
 import { INestApplication } from '@nestjs/common';
 
 import { buildOpenApiDocument } from './openapi.factory';
@@ -6,19 +6,19 @@ import { setupDocs } from './setup-docs';
 
 const mockEnv: { NODE_ENV: string } = { NODE_ENV: 'development' };
 
-jest.mock('@config/env.config', () => ({
+vi.mock('@config/env.config', () => ({
   get env() {
     return mockEnv;
   },
 }));
 
-jest.mock('./openapi.factory', () => ({ buildOpenApiDocument: jest.fn() }));
+vi.mock('./openapi.factory', () => ({ buildOpenApiDocument: vi.fn() }));
 
-jest.mock('@scalar/nestjs-api-reference', () => ({ apiReference: jest.fn(() => jest.fn()) }));
+vi.mock('@scalar/nestjs-api-reference', () => ({ apiReference: vi.fn(() => vi.fn()) }));
 
 describe('setupDocs', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('does not mount the docs surface in production', () => {

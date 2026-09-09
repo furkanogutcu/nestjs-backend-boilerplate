@@ -1,9 +1,9 @@
 # Integration and e2e
 
-Two opt-in Jest projects, separate from the fast unit run — so `pnpm test` never needs Docker:
+Two opt-in Vitest projects, separate from the fast unit run — so `pnpm test` never needs Docker:
 
-- `pnpm test:integration` → `test/jest-integration.json`, matches `*.integration-spec.ts`.
-- `pnpm test:e2e` → `test/jest-e2e.json`, matches `*.e2e-spec.ts`.
+- `pnpm test:integration` → `vitest.integration.config.ts`, matches `*.integration-spec.ts`.
+- `pnpm test:e2e` → `vitest.e2e.config.ts`, matches `*.e2e-spec.ts`.
 
 Both reuse the env-setup/setup files and the `@test/*` alias. Both require a Docker daemon
 (Testcontainers). CI runs them in a job separate from the unit job.
@@ -24,7 +24,7 @@ crypto, kafka producer/consumer wiring) is better and faster as a mocked unit te
 
 Start an ephemeral container in `beforeAll`, connect a **real** client directly to it (bypassing the
 `env` frozen at import), tear it down in `afterAll`. Use a generous `testTimeout` (set to 60s in
-`jest-integration.json`).
+`vitest.integration.config.ts`).
 
 ```ts
 import { RedisContainer, StartedRedisContainer } from '@testcontainers/redis';

@@ -5,9 +5,9 @@ import { createCallHandler, createMockExecutionContext, createMockRequest, creat
 
 import { MetricsInterceptor } from './metrics.interceptor';
 
-const mockRecord = jest.fn();
+const mockRecord = vi.fn();
 
-jest.mock('@infrastructure/observability/meter', () => ({
+vi.mock('@infrastructure/observability/meter', () => ({
   getMeter: () => ({ createHistogram: () => ({ record: mockRecord }) }),
 }));
 

@@ -1,7 +1,8 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { hash, verify } from '@node-rs/argon2';
 import { createHash } from 'crypto';
 import { QueryFailedError } from 'typeorm';
+import type { Mock, MockedFunction } from 'vitest';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { MailProducer } from '@infrastructure/mail/jobs/mail.producer';
@@ -18,10 +19,10 @@ import { SessionService } from '../services/session.service';
 import { PasswordService } from './password.service';
 import { PasswordStrengthService } from './password-strength.service';
 
-jest.mock('@node-rs/argon2', () => ({ hash: jest.fn(), verify: jest.fn() }));
+vi.mock('@node-rs/argon2', () => ({ hash: vi.fn(), verify: vi.fn() }));
 
-const mockedHash = hash as jest.MockedFunction<typeof hash>;
-const mockedVerify = verify as jest.MockedFunction<typeof verify>;
+const mockedHash = hash as MockedFunction<typeof hash>;
+const mockedVerify = verify as MockedFunction<typeof verify>;
 
 describe('PasswordService', () => {
   let usersRepository: DeepMocked<UsersRepository>;
@@ -30,11 +31,11 @@ describe('PasswordService', () => {
   let mailProducer: DeepMocked<MailProducer>;
   let clock: DeepMocked<ClockService>;
   let passwordStrengthService: DeepMocked<PasswordStrengthService>;
-  let redisClient: { set: jest.Mock; getdel: jest.Mock };
+  let redisClient: { set: Mock; getdel: Mock };
   let service: PasswordService;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockedHash.mockResolvedValue('argon2-hash');
     mockedVerify.mockResolvedValue(true);
 
@@ -44,7 +45,7 @@ describe('PasswordService', () => {
     mailProducer = createMock<MailProducer>();
     clock = createMock<ClockService>();
     passwordStrengthService = createMock<PasswordStrengthService>();
-    redisClient = { set: jest.fn().mockResolvedValue('OK'), getdel: jest.fn() };
+    redisClient = { set: vi.fn().mockResolvedValue('OK'), getdel: vi.fn() };
     const redisService = createMock<RedisService>();
     redisService.getClient.mockReturnValue(redisClient as never);
 
@@ -69,8 +70,8 @@ describe('PasswordService', () => {
 
   describe('register', () => {
     beforeEach(() => {
-      (usersRepository.create as unknown as jest.Mock).mockImplementation((dto: Partial<User>) => dto);
-      (usersRepository.save as unknown as jest.Mock).mockImplementation(async (u: User) => await Promise.resolve(u));
+      (usersRepository.create as unknown as Mock).mockImplementation((dto: Partial<User>) => dto);
+      (usersRepository.save as unknown as Mock).mockImplementation(async (u: User) => await Promise.resolve(u));
     });
 
     it('hashes the password, persists a non-anonymous user, issues a session, and sends a verification mail', async () => {
@@ -98,7 +99,7 @@ describe('PasswordService', () => {
     });
 
     it('maps a unique-violation on email to a 409 conflict', async () => {
-      (usersRepository.save as unknown as jest.Mock).mockRejectedValue(
+      (usersRepository.save as unknown as Mock).mockRejectedValue(
         new QueryFailedError('q', [], { code: '23505' } as never),
       );
 
@@ -109,7 +110,7 @@ describe('PasswordService', () => {
     });
 
     it('rethrows a non-unique database error instead of masking it as a conflict', async () => {
-      (usersRepository.save as unknown as jest.Mock).mockRejectedValue(new Error('connection reset'));
+      (usersRepository.save as unknown as Mock).mockRejectedValue(new Error('connection reset'));
 
       await expect(service.register({ email: 'a@example.com', password: 'super-secret' })).rejects.toThrow(
         'connection reset',

@@ -1,6 +1,7 @@
 import { once } from 'node:events';
 
 import { OAuth2Client } from 'google-auth-library';
+import type { Mock } from 'vitest';
 
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 
@@ -9,11 +10,11 @@ import { PlayGamesVerifier } from './play-games-verifier.service';
 
 describe('PlayGamesVerifier', () => {
   let verifier: PlayGamesVerifier;
-  let getToken: jest.Mock;
+  let getToken: Mock;
 
   beforeEach(() => {
     verifier = new PlayGamesVerifier();
-    getToken = jest.fn();
+    getToken = vi.fn();
     (verifier as unknown as { client: OAuth2Client }).client = { getToken } as unknown as OAuth2Client;
   });
 
@@ -26,7 +27,7 @@ describe('PlayGamesVerifier', () => {
     ok?: boolean;
     contentLength?: string | null;
   }): void {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok,
       headers: { get: (name: string) => (name === 'content-length' ? contentLength : null) },
       json: async () => await Promise.resolve(body),
@@ -81,7 +82,7 @@ describe('PlayGamesVerifier', () => {
 
   it('rejects when the player request fails (network error or timeout abort)', async () => {
     getToken.mockResolvedValue({ tokens: { access_token: 'access-token' } });
-    global.fetch = jest.fn().mockRejectedValue(new Error('network down'));
+    global.fetch = vi.fn().mockRejectedValue(new Error('network down'));
 
     await expect(verifier.verify({ serverAuthCode: 'code' })).rejects.toBeInstanceOf(AppUnauthorizedException);
   });
@@ -94,9 +95,9 @@ describe('PlayGamesVerifier', () => {
   });
 
   it('aborts and rejects when the player request exceeds the fetch timeout', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     getToken.mockResolvedValue({ tokens: { access_token: 'access-token' } });
-    global.fetch = jest.fn().mockImplementation(async (...args: unknown[]) => {
+    global.fetch = vi.fn().mockImplementation(async (...args: unknown[]) => {
       const { signal } = args[1] as { signal: AbortSignal };
       await once(signal, 'abort');
       throw new Error('aborted');
@@ -105,9 +106,9 @@ describe('PlayGamesVerifier', () => {
     const assertion = expect(verifier.verify({ serverAuthCode: 'code' })).rejects.toBeInstanceOf(
       AppUnauthorizedException,
     );
-    await jest.advanceTimersByTimeAsync(PLAY_GAMES_FETCH_TIMEOUT_MS);
+    await vi.advanceTimersByTimeAsync(PLAY_GAMES_FETCH_TIMEOUT_MS);
     await assertion;
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

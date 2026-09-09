@@ -1,4 +1,4 @@
-jest.mock('@config/env.config', () => ({ env: { NODE_ENV: 'production' } }));
+vi.mock('@config/env.config', () => ({ env: { NODE_ENV: 'production' } }));
 
 import { env } from '@config/env.config';
 import { AppForbiddenException } from '@shared/exceptions/forbidden.exception';

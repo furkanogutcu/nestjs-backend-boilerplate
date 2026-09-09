@@ -5,7 +5,7 @@ Copy-paste starting points. Each mirrors a real spec in the repo — open that s
 ## Service with mocked dependencies — `cache.service.spec.ts`
 
 ```ts
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Redis } from 'ioredis';
 import { createMockRedis } from '@test/helpers';
 import { CacheService } from './cache.service';
@@ -19,7 +19,7 @@ describe('CacheService', () => {
     const redisService = createMock<RedisService>();
     redisService.getClient.mockReturnValue(redis);
     service = new CacheService(createMock<SensitiveService>(), redisService);
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined); // assert it was called, not its text
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined); // assert it was called, not its text
   });
 
   it('returns null and logs when redis throws', async () => {
@@ -98,12 +98,12 @@ await Promise.all(fns.map(async (fn) => await fn())); return {} as HealthCheckRe
 
 ## Health indicator — `redis.health-indicator.spec.ts`
 
-Stub `healthIndicatorService.check(key)` to return an object with `up`/`down` jest.fn's; drive
+Stub `healthIndicatorService.check(key)` to return an object with `up`/`down` vi.fn's; drive
 `redisService.getClient().ping()` to `'PONG'` / another value / reject and assert which one is called.
 
 ## Util with timers — `exponential-retry.util.spec.ts`, `sleep.util.spec.ts`
 
-Use `jest.mock('./sleep.util')` (or fake timers) + `jest.spyOn(Math, 'random').mockReturnValue(0.5)` so
+Use `vi.mock('./sleep.util')` (or fake timers) + `vi.spyOn(Math, 'random').mockReturnValue(0.5)` so
 that backoff delays are exact (deterministic). Assert the delays with `sleepMock.mock.calls.map((c) => c[0])`.
 
 ## Abstract base via subclass — `base-queue.producer.spec.ts`, `base-event-consumer.abstract.spec.ts`
@@ -113,6 +113,6 @@ protected method you need, then test through it.
 
 ## Kafka / external clients — `kafka-producer.service.spec.ts`, `kafka-consumer.service.spec.ts`
 
-Spy on the kafkajs prototype: `jest.spyOn(Kafka.prototype, 'producer').mockReturnValue(producerMock)`.
+Spy on the kafkajs prototype: `vi.spyOn(Kafka.prototype, 'producer').mockReturnValue(producerMock)`.
 For reconnect logic, use fake timers and `advanceTimersByTimeAsync(5000)`. To test message mapping,
 extract the `eachMessage` callback from `consumer.run.mock.calls[0][0]`.

@@ -1,6 +1,7 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { HealthIndicatorService } from '@nestjs/terminus';
 import { Redis } from 'ioredis';
+import type { Mock } from 'vitest';
 
 import { createMockRedis } from '@test/helpers';
 
@@ -9,7 +10,7 @@ import { RedisHealthIndicator } from './redis.health-indicator';
 
 describe('RedisHealthIndicator', () => {
   let redis: DeepMocked<Redis>;
-  let indicator: { up: jest.Mock; down: jest.Mock };
+  let indicator: { up: Mock; down: Mock };
   let healthIndicator: RedisHealthIndicator;
 
   const upResult = { redis: { status: 'up' } };
@@ -17,7 +18,7 @@ describe('RedisHealthIndicator', () => {
 
   beforeEach(() => {
     redis = createMockRedis();
-    indicator = { up: jest.fn().mockReturnValue(upResult), down: jest.fn().mockReturnValue(downResult) };
+    indicator = { up: vi.fn().mockReturnValue(upResult), down: vi.fn().mockReturnValue(downResult) };
 
     const healthIndicatorService = createMock<HealthIndicatorService>();
     healthIndicatorService.check.mockReturnValue(indicator as never);

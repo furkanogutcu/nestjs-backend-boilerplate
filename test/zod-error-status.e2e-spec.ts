@@ -2,6 +2,7 @@ import { Controller, Get, INestApplication, Logger } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import type { MockInstance } from 'vitest';
 import { z } from 'zod';
 
 import { OffsetPagination } from '@shared/decorators/offset-pagination.decorator';
@@ -33,7 +34,7 @@ class ZodErrorStatusTestController {
 // * filter): client-input ZodErrors are 400 client faults, server-side data ZodErrors are 500 internal faults.
 describe('ZodError HTTP status classification (e2e)', () => {
   let app: INestApplication;
-  let loggerError: jest.SpyInstance;
+  let loggerError: MockInstance;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -50,7 +51,7 @@ describe('ZodError HTTP status classification (e2e)', () => {
   });
 
   beforeEach(() => {
-    loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    loggerError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
   });
 
   afterEach(() => {

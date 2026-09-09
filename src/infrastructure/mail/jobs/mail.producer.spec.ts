@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { Queue } from 'bullmq';
 
 import { ISendMailParams } from '../schemas/send-mail.schema';

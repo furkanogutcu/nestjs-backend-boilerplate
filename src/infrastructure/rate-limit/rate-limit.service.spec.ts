@@ -1,15 +1,16 @@
-import { createMock } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-vitest';
 import { RateLimiterRedis, RateLimiterRes } from 'rate-limiter-flexible';
+import type { Mock } from 'vitest';
 
 import { IRateLimitOptions, RateLimitContext } from '@shared/interfaces/rate-limit-rule.interface';
 
 import { RedisService } from '../redis/redis.service';
 import { RateLimitService } from './rate-limit.service';
 
-jest.mock('rate-limiter-flexible', () => {
-  const actual = jest.requireActual('rate-limiter-flexible');
+vi.mock('rate-limiter-flexible', async () => {
+  const actual = await vi.importActual('rate-limiter-flexible');
 
-  return { ...actual, RateLimiterRedis: jest.fn() };
+  return { ...actual, RateLimiterRedis: vi.fn() };
 });
 
 function buildOptions(options: Partial<IRateLimitOptions> = {}): IRateLimitOptions {
@@ -22,11 +23,13 @@ const context: RateLimitContext = {
 
 describe('RateLimitService', () => {
   let service: RateLimitService;
-  let consume: jest.Mock;
+  let consume: Mock;
 
   beforeEach(() => {
-    consume = jest.fn().mockResolvedValue(createMock<RateLimiterRes>());
-    jest.mocked(RateLimiterRedis).mockImplementation(() => ({ consume }) as unknown as RateLimiterRedis);
+    consume = vi.fn().mockResolvedValue(createMock<RateLimiterRes>());
+    vi.mocked(RateLimiterRedis).mockImplementation(function () {
+      return { consume } as unknown as RateLimiterRedis;
+    });
 
     const redisService = createMock<RedisService>();
     service = new RateLimitService(redisService);

@@ -1,4 +1,4 @@
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 import { createMockExecutionContext, createMockReflector, createMockRequest } from '@test/helpers';
