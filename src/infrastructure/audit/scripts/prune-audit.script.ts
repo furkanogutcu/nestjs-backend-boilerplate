@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 
 import { env } from '@config/env.config';
 
-// ! Runs under MIGRATION_DATABASE_URL: the application role cannot delete audit rows, and must never be given that power.
+// ! Runs under MIGRATION_DATABASE_URL: the application role cannot delete audit rows, by design.
 async function run(): Promise<void> {
   const retentionDays = Number(readArgument('older-than-days') ?? env.AUDIT_RETENTION_DAYS);
 

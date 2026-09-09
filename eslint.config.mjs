@@ -1,17 +1,15 @@
 // @ts-check
-import eslint from '@eslint/js'
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
-import globals from 'globals'
-import tseslint from 'typescript-eslint'
-import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import eslint from '@eslint/js';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-import entityTableNamePlural from './eslint-rules/entity-table-name-plural.mjs'
-import routeResponseSchema from './eslint-rules/route-response-schema.mjs'
+import commentPolicy from './eslint-rules/comment-policy.mjs';
+import entityTableNamePlural from './eslint-rules/entity-table-name-plural.mjs';
+import routeResponseSchema from './eslint-rules/route-response-schema.mjs';
 
 export default tseslint.config(
-  {
-    ignores: ['eslint.config.mjs'],
-  },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   eslintPluginPrettierRecommended,
@@ -35,15 +33,12 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
-      // Functions/methods with 2+ parameters must accept a single named-parameter object.
-      // Constructors are exempt because NestJS dependency injection relies on positional
-      // constructor parameters (it cannot inject into a destructured object).
+      // * Constructors are exempt: NestJS DI cannot inject into a destructured object.
       'no-restricted-syntax': [
         'error',
         {
           selector: 'FunctionDeclaration[params.length>1]',
-          message:
-            'Functions with 2+ parameters must accept a single named-parameter object (e.g. fn({ a, b })).',
+          message: 'Functions with 2+ parameters must accept a single named-parameter object (e.g. fn({ a, b })).',
         },
         {
           selector: 'ArrowFunctionExpression[params.length>1]',
@@ -53,8 +48,7 @@ export default tseslint.config(
         {
           selector:
             'FunctionExpression[params.length>1]:not(MethodDefinition[kind="constructor"] > FunctionExpression)',
-          message:
-            'Methods with 2+ parameters must accept a single named-parameter object (e.g. method({ a, b })).',
+          message: 'Methods with 2+ parameters must accept a single named-parameter object (e.g. method({ a, b })).',
         },
       ],
       '@typescript-eslint/no-unsafe-argument': 'off',
@@ -74,7 +68,12 @@ export default tseslint.config(
       '@typescript-eslint/naming-convention': [
         'error',
         { selector: 'interface', format: ['PascalCase'], custom: { regex: '^I[A-Z]', match: true } },
-        { selector: 'class', modifiers: ['abstract'], format: ['PascalCase'], custom: { regex: '^Base[A-Z]', match: true } },
+        {
+          selector: 'class',
+          modifiers: ['abstract'],
+          format: ['PascalCase'],
+          custom: { regex: '^Base[A-Z]', match: true },
+        },
       ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -104,10 +103,7 @@ export default tseslint.config(
     },
   },
   {
-    // * Framework-dictated signatures: NestJS lifecycle classes and param-decorator factories, Express handlers,
-    // * TypeORM's NamingStrategyInterface, Zod transform/superRefine callbacks and Jest it.each rows all take
-    // * positional arguments this codebase does not control. The named-parameter rule stays on everywhere else —
-    // * services, utils and repositories are its real target.
+    // * Framework-dictated positional signatures this codebase does not control.
     files: [
       '**/*.spec.ts',
       '**/*.integration-spec.ts',
@@ -130,29 +126,37 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.controller.ts'],
+    files: ['**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      sourceType: 'module',
+      parserOptions: { projectService: false, project: false },
+    },
+  },
+  {
     plugins: {
       local: {
         rules: {
+          'comment-policy': commentPolicy,
+          'entity-table-name-plural': entityTableNamePlural,
           'route-response-schema': routeResponseSchema,
         },
       },
     },
+    rules: {
+      'local/comment-policy': 'error',
+    },
+  },
+  {
+    files: ['**/*.controller.ts'],
     rules: {
       'local/route-response-schema': 'error',
     },
   },
   {
     files: ['**/entities/*.entity.ts'],
-    plugins: {
-      local: {
-        rules: {
-          'entity-table-name-plural': entityTableNamePlural,
-        },
-      },
-    },
     rules: {
       'local/entity-table-name-plural': 'error',
     },
   },
-)
+);

@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 
-// * Content-addressed by design: the same name yields the same primary key, so a duplicate insert collides instead of writing twice.
+// * Content-addressed: the same name yields the same primary key, so a duplicate insert collides.
 export function deterministicUuid(name: string): string {
   const bytes = createHash('sha256').update(name).digest().subarray(0, 16);
 

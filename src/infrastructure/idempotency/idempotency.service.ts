@@ -20,7 +20,7 @@ export class IdempotencyService {
   private readonly logger = new Logger(IdempotencyService.name);
   private readonly keyPrefix = appConfig.redis.keyPrefixes.idempotency;
 
-  // ! lockTtlSeconds MUST exceed worst-case compute(), or the lock expires mid-run and a second request duplicates the side effect.
+  // ! lockTtlSeconds MUST exceed worst-case compute(), or a second request duplicates the side effect.
   private readonly lockTokenBytes = 16;
   private readonly lockFrameSeparator = '|';
 

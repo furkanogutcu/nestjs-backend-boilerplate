@@ -288,6 +288,9 @@ codebase even though lint does not enforce them. Both apply to new code.
 - Promise-returning functions must be `async` (`promise-function-async`) and the returned promise must be `await`ed (`return-await: always`).
 - Private fields that are not mutated must be `readonly` (`prefer-readonly`).
 - Naming: interface `I` prefix, abstract class `Base` prefix (see "Naming conventions").
+- Comments: one line, ≤120 characters, a Better Comments prefix, no `/* */` blocks — the local `comment-policy` rule (see "Comments").
+
+The three project-specific rules live in `eslint-rules/`: `comment-policy` (all files), `route-response-schema` (`*.controller.ts`) and `entity-table-name-plural` (`entities/*.entity.ts`).
 
 **Conventions followed even though lint does not enforce them:**
 
@@ -300,21 +303,43 @@ codebase even though lint does not enforce them. Both apply to new code.
 
 ### Comments
 
-**Code without comments first.** A comment is, by default, **not written** — code should explain itself (names, structure, small functions). Before writing a comment, ask: "Is this genuinely important and useful, or is it already clear from the code?" Do not write a comment that repeats the **what** / **how** already clear from the code; a comment documents only the **"why"** that does not follow from the code (rationale, tradeoff, hazard, an easily-missed invariant). Good example: the `// * Uses PgBouncer.` / `// * Bypasses PgBouncer.` in `typeorm.data-source.ts` — it conveys the difference between the two migrations at a glance. When a comment is written, keep it **as short as possible**.
+**The default is no comment.** Code explains itself through names, structure and small functions. A comment is written only when leaving it out would let someone break a **security or correctness guarantee** that the code cannot state on its own — a hazard, an invariant, a deliberate-looking-wrong decision. Everything else is deleted: restating the **what**/**how**, describing a well-named function or column, explaining a language feature, narrating a `try`/`catch` that is already visible, repeating what a test's `it('...')` name already says.
 
-**Better Comments prefixes** (colored by the VS Code "Better Comments" extension; every line-comment carries a prefix):
+The test is blunt: **delete the comment and ask what breaks.** If the answer is "nothing, the code still reads fine", it should not have been written. If the answer is "someone would remove the `timingSafeEqual`" or "someone would point migrations at the pooled URL", write it — in **one line**.
 
-| Prefix     | When                                                                                                 |
-| ---------- | ---------------------------------------------------------------------------------------------------- |
-| `// *`     | Normal/informative note — rationale, explanation, emphasis (the default choice).                     |
-| `// !`     | Critical warning — something with serious consequences if broken (data loss, security, destructive). |
-| `// ?`     | Question / open point — an undecided decision or an assumption to verify.                            |
-| `// TODO:` | Work to be done later (if permanent, open an issue, do not leave it in the code).                    |
+**Hard limits (enforced by the `local/comment-policy` ESLint rule, so a violation cannot be committed):**
 
-- **In a multi-line comment, each line carries its own prefix** (in a block starting with `// *`, every line is `// *`).
-- **JSDoc blocks (`/** ... \*/`) are a separate category\*\* — they document the public/abstract API contract and are read by the IDE/tooling; they do not take a Better Comments prefix. Use them only for a real API contract (e.g. the rule an abstract method must follow).
+| Limit                                           | Rationale                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| **One line per comment**                        | A paragraph is a sign the comment is explaining the code instead of the reason. |
+| **≤ 120 characters** (the Prettier print width) | Long enough for a real reason, short enough that it cannot become prose.        |
+| **A Better Comments prefix on every comment**   | An unprefixed `//` is either commented-out code or a note nobody classified.    |
+| **No `/* */` blocks** (JSDoc `/** */` excepted) | One comment style, so the rule has one thing to check.                          |
+
+The rule exempts tooling directives (`// eslint-disable-next-line …`, `// @ts-expect-error`, `// prettier-ignore`) — those are machine instructions, not prose, and their `--` explanation may run long.
+
+**Better Comments prefixes** (colored by the VS Code "Better Comments" extension):
+
+| Prefix     | When                                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `// !`     | A hazard: breaking this costs data, security or availability. **The common case** — most surviving comments are warnings. |
+| `// *`     | A reason the code cannot carry: a non-obvious invariant, a deliberate tradeoff.                                           |
+| `// ?`     | Question / open point — an undecided decision or an assumption to verify.                                                 |
+| `// TODO:` | Work to be done later (if permanent, open an issue, do not leave it in the code).                                         |
+
+Good examples, all one line:
+
+```ts
+// ! Honour a forwarded IP only when the DIRECT peer is trusted, or anyone can forge cf-connecting-ip.
+// ! No early exit once matched: the response time would reveal the position of the presented code.
+// ! insert(), never save(): save() would UPDATE an existing id and this table is append-only.
+// * Uses PgBouncer.
+```
+
+- **JSDoc blocks (`/** ... \*/`) are a separate category\*\* — they document the public/abstract API contract and are read by the IDE/tooling; they do not take a Better Comments prefix. Use them only for a real API contract (e.g. the rule an abstract method must follow), never as a place to park prose the line limit rejects.
 - **Commented-out (dead) code is not left behind** — it is deleted; Better Comments' plain `//` (strikethrough) tag is not used in this project.
 - **No issue/task IDs are embedded in comments (or in code/tests/docs in general)** — work references are descriptive ("when the payment module arrives"); a permanent TODO gets an issue opened, no ID written into the code.
+- **A comment is not a home for documentation.** Client-facing behaviour belongs in `docs/client-integration/`, operational procedure in `docs/runbooks/`, conventions here. If a would-be comment runs past one line, the content belongs in one of those and usually needs no comment at all.
 
 ## API documentation
 

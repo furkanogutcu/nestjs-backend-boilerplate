@@ -22,7 +22,7 @@ export function parseClientIp(params: { req: Request; fallbackIp?: string }): st
   return req.ip ?? fallbackIp;
 }
 
-// ! Honour a forwarded IP only when the DIRECT peer is a trusted proxy; loosening this lets anyone forge cf-connecting-ip.
+// ! Honour a forwarded IP only when the DIRECT peer is trusted, or anyone can forge cf-connecting-ip.
 export function isTrustedPeer(params: {
   remoteAddress: string | undefined;
   trustFn: TrustProxyFn | undefined;

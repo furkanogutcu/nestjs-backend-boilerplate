@@ -93,7 +93,7 @@ Repository.prototype.listWithCursorPagination = async function <Entity extends O
 
   const sortOrder = direction === 'asc' ? 'ASC' : 'DESC';
 
-  // ! Cursor comes from the ::text cast, not the entity field: a hydrated Date/number loses the precision the keyset boundary needs.
+  // ! Cursor comes from the ::text cast: a hydrated Date/number loses the precision the keyset boundary needs.
   queryBuilder
     .orderBy(`${alias}.${sortColumn}`, sortOrder)
     .addOrderBy(`${alias}.${idColumn}`, sortOrder)
