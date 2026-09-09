@@ -32,14 +32,12 @@ export class ResendWebhookService {
   async handle(params: { payload: string; headers: IResendWebhookHeaders }): Promise<void> {
     const event = this.verify(params);
 
-    // * Replay/inbox guard: a valid signature stays acceptable for Svix's 5-minute tolerance, so a captured signed
-    // * event could be re-POSTed. Claim the first delivery by its Svix message id and drop any repeat before it acts.
+    // ! A signature stays valid for Svix's tolerance window, so a captured event must be dropped before it acts.
     if (!(await this.claimDelivery(params.headers.id))) {
       return;
     }
 
     if (event.type === 'email.bounced') {
-      // * Only permanent bounces warrant suppression; a transient bounce (full mailbox, greylisting) may clear.
       if (event.data.bounce.type !== 'Transient') {
         await this.suppress({
           recipients: event.data.to,
@@ -70,8 +68,7 @@ export class ResendWebhookService {
     }
   }
 
-  // * Single-use claim on the Svix message id. Empty id would collapse every empty-id event onto one key, so reject
-  // * it outright (a signed event always carries one). SET NX succeeds only for the first delivery of a given id.
+  // ! Reject an empty id outright: it would collapse every such event onto one claim key.
   private async claimDelivery(svixId: string): Promise<boolean> {
     if (!svixId) {
       throw new AppUnauthorizedException({ message: 'Missing Svix message id' });
@@ -89,7 +86,6 @@ export class ResendWebhookService {
     metadata: Record<string, unknown>;
   }): Promise<void> {
     const { recipients, reason, metadata } = params;
-    // * Bounded window (not permanent) so a false-positive or a now-fixed address recovers; a repeat bounce refreshes it.
     const expiresAt = new Date(this.clock.epochMillis() + MAIL_SUPPRESSION_TTL_MS);
 
     for (const email of recipients) {

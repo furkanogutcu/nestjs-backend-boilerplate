@@ -4,7 +4,6 @@ import { SensitiveService } from './sensitive.service';
 
 let sensitiveService: SensitiveService | undefined;
 
-// * Transformers are instantiated at entity-decoration time, outside Nest DI; reuse one cipher across columns.
 const getSensitiveService = (): SensitiveService => (sensitiveService ??= new SensitiveService());
 
 export class EncryptedColumnTransformer implements ValueTransformer {

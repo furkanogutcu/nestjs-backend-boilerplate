@@ -27,14 +27,7 @@ export class MailService implements OnModuleInit {
     await this.loadTemplates();
   }
 
-  async send(params: {
-    payload: ISendMailParams;
-    idempotencyKey?: string;
-    // * Security-critical mail (verification, password reset) MUST reach the user, so it bypasses the suppression
-    // * list — a single bounce/complaint can never lock someone out of account recovery. Marketing/transactional
-    // * mail leaves this false and honours suppression.
-    securityCritical?: boolean;
-  }): Promise<void> {
+  async send(params: { payload: ISendMailParams; idempotencyKey?: string; securityCritical?: boolean }): Promise<void> {
     const { payload, idempotencyKey, securityCritical } = params;
     const template = this.templates.get(payload.template);
 
@@ -52,7 +45,7 @@ export class MailService implements OnModuleInit {
         try {
           if (!securityCritical && (await this.suppressionRepository.isSuppressed(payload.to))) {
             span.setAttribute('mail.suppressed', true);
-            // * Log only the domain, never the full address (PII): mirrors the span's recipient_domain attribute.
+            // ! Domain only, never the full address (PII).
             this.logger.warn(
               `Mail skipped (recipient domain=${payload.to.split('@')[1] ?? 'unknown'}): address is on the suppression list`,
             );

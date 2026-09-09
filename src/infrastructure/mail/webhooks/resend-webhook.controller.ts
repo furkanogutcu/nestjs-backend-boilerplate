@@ -15,8 +15,7 @@ import { Public } from '@shared/decorators/public.decorator';
 
 import { ResendWebhookService } from './resend-webhook.service';
 
-// * VERSION_NEUTRAL keeps the path at /webhooks/resend (off the /api/v<n> prefix): the URL is an external contract
-// * configured in the Resend dashboard and must not move when the API is versioned.
+// ! VERSION_NEUTRAL: the URL is configured in the Resend dashboard and must not move when the API is versioned.
 @Controller({ path: 'webhooks/resend', version: VERSION_NEUTRAL })
 export class ResendWebhookController {
   constructor(private readonly service: ResendWebhookService) {}

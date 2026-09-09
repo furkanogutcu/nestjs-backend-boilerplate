@@ -8,7 +8,7 @@ export class SecurityModule implements NestModule {
     consumer
       .apply(
         helmet({
-          // * JSON-only API: useDefaults:false keeps the policy to exactly these two directives (defaults would re-add script/style/img allowances) so a browser-rendered response can neither load resources nor be framed. Docs UI has its own CSP.
+          // ! useDefaults:false — the defaults re-add script/style/img allowances this JSON-only API must not grant.
           contentSecurityPolicy: {
             useDefaults: false,
             directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },

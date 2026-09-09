@@ -12,9 +12,7 @@ export class AuditEvent {
   @Column({ type: 'varchar', length: 100 })
   action!: AuditAction;
 
-  // ! Deliberately not a foreign key. An audit row outlives the account it describes: erasing a user must not
-  // ! erase the record that an administrator suspended them, and a cascade here would do exactly that.
-  // ! Null means the actor was the system itself (a scheduled job, a CLI, an unauthenticated attempt).
+  // ! Deliberately not a foreign key: erasing a user must not erase the record of what was done to them.
   @Index()
   @Column({ type: 'uuid', nullable: true })
   actorUserId!: string | null;
@@ -25,8 +23,7 @@ export class AuditEvent {
   @Column({ type: 'varchar', length: 100, nullable: true })
   subjectId!: string | null;
 
-  // * Free-form context for the event: which fields changed, which role was granted, why a login failed. Never
-  // * put credentials, tokens or full request bodies here — this table is read by more people than the logs.
+  // ! Never put credentials, tokens or full request bodies here — this table is read by more people than the logs.
   @Column({ type: 'jsonb', nullable: true })
   metadata!: Record<string, unknown> | null;
 

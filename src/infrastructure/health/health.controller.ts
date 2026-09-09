@@ -35,8 +35,7 @@ export class HealthController {
   @Get('ready')
   @ApiOperation({ summary: 'Readiness' })
   async readiness(@Res() res: Response): Promise<void> {
-    // ! Draining is checked before the cache, not inside it: a cached healthy result would keep the load
-    // ! balancer routing traffic here for up to READINESS_CACHE_TTL_MS after the shutdown signal.
+    // ! Checked before the cache: a cached healthy result would keep traffic routed here after the shutdown signal.
     const healthy = !this.shutdownState.isDraining && (await this.resolveReadiness());
 
     res.status(healthy ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).json({ status: healthy ? 'ok' : 'error' });

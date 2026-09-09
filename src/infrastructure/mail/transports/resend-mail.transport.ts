@@ -20,8 +20,7 @@ export class ResendMailTransport implements IMailTransport {
     if (error) {
       const description = `Resend send failed (${error.name}, status ${error.statusCode ?? 'none'}): ${error.message}`;
 
-      // * 4xx other than 429 are permanent (invalid payload/address, auth) — a retry fails identically, so tell
-      // * BullMQ to stop burning attempts. Network/unknown, 429 and 5xx are transient → plain Error triggers retry.
+      // ! 4xx except 429 are permanent: UnrecoverableError stops BullMQ retrying, anything else stays retryable.
       if (error.statusCode !== null && error.statusCode < 500 && error.statusCode !== 429) {
         throw new UnrecoverableError(description);
       }

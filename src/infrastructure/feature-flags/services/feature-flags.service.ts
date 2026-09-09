@@ -16,8 +16,7 @@ export class FeatureFlagsService {
     private readonly cacheService: CacheService,
   ) {}
 
-  // ! An unknown key is disabled, never enabled: a typo in @RequireFeature must fail closed, and a flag that
-  // ! has not been created yet is by definition not rolled out.
+  // ! An unknown key is disabled, never enabled: a typo in @RequireFeature must fail closed.
   async isEnabled({ key }: { key: string }): Promise<boolean> {
     const cached = await this.cacheService.get<boolean>({ key: this.cacheKey(key) });
 

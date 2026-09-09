@@ -1,4 +1,4 @@
-// * env.config validates process.env at import and exits on failure; this module loads first so a valid-but-inert env exists before any source module. Shell/.env values take precedence.
+// ! Must load first: env.config validates and exits at import, so a valid env has to exist before any source module.
 const DOC_GEN_ENV: Record<string, string> = {
   NODE_ENV: 'development',
   PORT: '4000',

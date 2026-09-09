@@ -23,8 +23,7 @@ export class FeatureFlagGuard implements CanActivate {
       return true;
     }
 
-    // * 404 rather than 403: a route behind a flag that is off should look like it does not exist, so a
-    // * disabled rollout does not advertise what is coming.
+    // * 404 not 403: a disabled rollout must not advertise what is coming.
     if (!(await this.featureFlags.isEnabled({ key }))) {
       throw new AppNotFoundException({ resourceName: 'Resource' });
     }

@@ -20,8 +20,7 @@ export class IdempotencyService {
   private readonly logger = new Logger(IdempotencyService.name);
   private readonly keyPrefix = appConfig.redis.keyPrefixes.idempotency;
 
-  // * Lock fencing: a per-execution random token is stored as a plaintext prefix so the Lua guards verify ownership without decrypting; it holds no secret, and the payload stays AES-GCM encrypted after the prefix.
-  // ! Invariant: lockTtlSeconds MUST exceed worst-case compute() duration, or the lock can expire mid-compute and a second request runs a duplicate side effect.
+  // ! lockTtlSeconds MUST exceed worst-case compute(), or the lock expires mid-run and a second request duplicates the side effect.
   private readonly lockTokenBytes = 16;
   private readonly lockFrameSeparator = '|';
 
@@ -60,7 +59,7 @@ export class IdempotencyService {
     if (!acquired) {
       const afterRace = await this.read<T>(cacheKey);
 
-      // * Lost the SET NX race: the holder's entry is now visible (typically in_progress → 409). If it already vanished, fail closed rather than run compute() without the lock and risk a duplicate side effect.
+      // ! Fail closed: without the holder's entry, running compute() unlocked would risk a duplicate side effect.
       if (!afterRace) {
         throw new AppServiceUnavailableException();
       }
@@ -102,10 +101,8 @@ export class IdempotencyService {
     try {
       const result = await this.redisService.getClient().set(cacheKey, value, 'EX', lockTtlSeconds, 'NX');
 
-      // * `result === null` is a normal lost-race (the key already exists), not a Redis failure.
       return { acquired: result === 'OK', lockToken };
     } catch (error) {
-      // * Fail closed: could not establish the lock, so surface a 503 rather than run compute() and risk a duplicate side effect.
       this.logger.error(`Idempotency reserve failed: ${this.toMessage(error)}`);
 
       throw new AppServiceUnavailableException();
@@ -155,7 +152,7 @@ export class IdempotencyService {
   }): Promise<void> {
     try {
       const entry: CachedEntry<T> = { state: 'completed', fingerprint, response };
-      // * Completed entries carry no owner (empty token prefix); the guard reads the existing in_progress token to confirm we still hold the lock before overwriting.
+      // * Completed entries carry no owner; the guard checks the existing in_progress token before overwriting.
       const value = this.frame({
         lockToken: '',
         encrypted: this.sensitiveService.encrypt({ input: entry, aad: cacheKey }),
@@ -165,7 +162,7 @@ export class IdempotencyService {
         .getClient()
         .eval(IDEMPOTENCY_STORE_IF_OWNED_SCRIPT, 1, cacheKey, lockToken, value, responseTtlSeconds);
     } catch (error) {
-      // * Best-effort: compute() already committed its side effect, so we cannot fail now — log and return uncached; the stale in_progress lock expires on its own (409 to retries until then).
+      // ! compute() already committed its side effect, so a failed write must not fail the request.
       this.logger.error(`Idempotency write failed; response delivered but not cached: ${this.toMessage(error)}`);
     }
   }
@@ -192,7 +189,6 @@ export class IdempotencyService {
     try {
       stored = await this.redisService.getClient().get(cacheKey);
     } catch (error) {
-      // * Fail closed: a Redis transport error means we cannot prove this is a fresh request, so surface a 503 instead of treating it as a miss.
       this.logger.error(`Idempotency read failed: ${this.toMessage(error)}`);
 
       throw new AppServiceUnavailableException();
@@ -205,7 +201,7 @@ export class IdempotencyService {
     try {
       return this.sensitiveService.decrypt({ input: this.unframe(stored), aad: cacheKey }) as CachedEntry<T>;
     } catch (error) {
-      // * A decrypt failure (e.g. relocated ciphertext failing AAD) is provably garbage; a legitimate in_progress lock would decrypt under the same AAD, so purging here cannot drop another holder's lock. Reclaim via SET NX and recompute.
+      // ! Purging is safe: a legitimate lock decrypts under the same AAD, so this can only drop garbage.
       this.logger.warn(`Idempotency entry failed to decrypt; purging and treating as miss: ${this.toMessage(error)}`);
       await this.purge(cacheKey);
 

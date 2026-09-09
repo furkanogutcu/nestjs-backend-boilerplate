@@ -1,6 +1,5 @@
-// * Atomic ownership guards for the idempotency lock. The lock token is stored as a plaintext prefix (`<token>|<ciphertext>`) so these scripts verify ownership server-side without decrypting, in one round-trip.
+// ! The lock token is a plaintext prefix (`<token>|<ciphertext>`) so these guards check ownership without decrypting.
 
-// * Delete the key only if its lock-token prefix still matches ours, never a lock a newer holder re-acquired after ours expired.
 export const IDEMPOTENCY_RELEASE_IF_OWNED_SCRIPT = `
 local current = redis.call('GET', KEYS[1])
 if not current then return 0 end
@@ -12,7 +11,6 @@ end
 return 0
 `;
 
-// * Overwrite with the completed entry only if our in_progress lock is still the one held.
 export const IDEMPOTENCY_STORE_IF_OWNED_SCRIPT = `
 local current = redis.call('GET', KEYS[1])
 if not current then return 0 end

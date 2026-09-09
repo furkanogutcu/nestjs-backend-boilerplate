@@ -8,9 +8,7 @@ import {
   ATTR_USER_AGENT_ORIGINAL,
 } from '@opentelemetry/semantic-conventions';
 
-// ! The HTTP instrumentation records the caller's IP, port, user agent and full query string on every server
-// ! span. Those are personal data and a trace backend is not a lawful place to keep them, so they are stripped
-// ! before export — dropping them here rather than at the collector keeps the guarantee inside this process.
+// ! HTTP spans carry caller IP, user agent and query string — personal data that must not reach the trace backend.
 const SCRUBBED_SPAN_ATTRIBUTES = [
   ATTR_CLIENT_ADDRESS,
   ATTR_NETWORK_PEER_ADDRESS,

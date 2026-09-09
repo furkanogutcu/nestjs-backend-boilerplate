@@ -16,9 +16,6 @@ import { ResendWebhookService } from './webhooks/resend-webhook.service';
 
 const isResend = env.MAIL_DRIVER === 'resend';
 
-// * The Resend webhook (bounce/complaint → suppression) is only wired under the resend driver: its verifier needs an
-// * API-keyed Resend client, present solely when MAIL_DRIVER=resend. The log driver sends no external mail, so there
-// * is nothing to receive bounces for.
 @Global()
 @Module({
   imports: [BullModule.registerQueue({ name: AppQueue.SendMail })],

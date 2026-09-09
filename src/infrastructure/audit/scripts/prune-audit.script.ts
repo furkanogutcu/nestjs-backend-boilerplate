@@ -3,9 +3,7 @@ import { DataSource } from 'typeorm';
 
 import { env } from '@config/env.config';
 
-// ! Runs as a standalone maintenance task, not as an in-process job, and connects with MIGRATION_DATABASE_URL.
-// ! That is the whole point of the append-only grant: the application role cannot delete audit rows, so pruning
-// ! has to come from the owning role. Giving the running application that power would undo the guarantee.
+// ! Runs under MIGRATION_DATABASE_URL: the application role cannot delete audit rows, and must never be given that power.
 async function run(): Promise<void> {
   const retentionDays = Number(readArgument('older-than-days') ?? env.AUDIT_RETENTION_DAYS);
 

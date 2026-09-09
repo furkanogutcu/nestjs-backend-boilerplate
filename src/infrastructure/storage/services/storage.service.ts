@@ -20,9 +20,6 @@ export interface ISignedUpload {
   url: string;
   key: string;
   expiresInSeconds: number;
-  // * The client must send exactly these; they are part of the signature, so a larger body or a different type
-  // * is rejected by the storage provider rather than trusted from the request. Note that browsers and `fetch`
-  // * set Content-Length themselves and reject an explicit one — it is listed here for clients that do not.
   requiredHeaders: { 'Content-Type': string; 'Content-Length': string };
 }
 
@@ -51,8 +48,6 @@ export class StorageService implements OnModuleDestroy {
     return this.client !== null;
   }
 
-  // ! Validation happens here, before anything is signed: the signature is what makes the limits binding, so a
-  // ! caller can never negotiate a larger body or a different content type after the fact.
   async createUploadUrl(params: {
     key: string;
     contentType: string;
@@ -90,9 +85,7 @@ export class StorageService implements OnModuleDestroy {
       }),
       {
         expiresIn: env.UPLOAD_URL_TTL_SECONDS,
-        // ! Without this the presigner signs only `host`, and the content type and length become advisory —
-        // ! a client could then upload anything of any size to a URL issued for a small PNG. Listing them here
-        // ! is what makes the storage provider reject a mismatched upload.
+        // ! Signing these headers is what makes the size and content type binding; without them they are advisory.
         signableHeaders: new Set(['content-type', 'content-length']),
       },
     );
@@ -111,7 +104,6 @@ export class StorageService implements OnModuleDestroy {
     });
   }
 
-  // * Only meaningful for keys under the public prefix; anything else needs a signed download URL.
   publicUrl({ key }: { key: string }): string {
     if (!env.S3_PUBLIC_BASE_URL) {
       throw new AppInternalException({ message: 'S3_PUBLIC_BASE_URL is not configured' });
@@ -134,8 +126,6 @@ export class StorageService implements OnModuleDestroy {
     }
   }
 
-  // * Best-effort: an object that could not be removed is logged for a sweeper to pick up, but the caller's
-  // * own write (deleting the row that referenced it) must not be rolled back over a storage hiccup.
   async delete({ key }: { key: string }): Promise<void> {
     try {
       await this.requireClient().send(new DeleteObjectCommand({ Bucket: this.requireBucket(), Key: key }));

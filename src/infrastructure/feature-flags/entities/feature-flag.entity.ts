@@ -2,8 +2,6 @@ import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('feature_flags')
 export class FeatureFlag {
-  // * The key routes reference through @RequireFeature. Free-form on purpose: flags come and go far faster
-  // * than a deploy, so unlike permissions they are data rather than a code enum.
   @PrimaryColumn({ type: 'varchar', length: 100 })
   key!: string;
 

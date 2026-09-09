@@ -2,8 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { IMailMessage, IMailSendResult, IMailTransport } from '@shared/interfaces/mail-transport.interface';
 
-// * No-op driver for non-production: renders nothing to the network, just logs the outgoing mail so local/CI runs
-// * never depend on a real ESP. Selected via MAIL_DRIVER=log (the default outside production).
 @Injectable()
 export class LogMailTransport implements IMailTransport {
   private readonly logger = new Logger(LogMailTransport.name);

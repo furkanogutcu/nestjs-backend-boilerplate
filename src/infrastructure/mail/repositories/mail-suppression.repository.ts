@@ -12,7 +12,6 @@ export class MailSuppressionRepository extends Repository<MailSuppression> {
     super(MailSuppression, dataSource.createEntityManager());
   }
 
-  // * A LAPSED suppression no longer blocks: an address is suppressed only while its window is open (or permanent).
   async isSuppressed(email: string): Promise<boolean> {
     const normalized = email.toLowerCase();
 
@@ -30,8 +29,6 @@ export class MailSuppressionRepository extends Repository<MailSuppression> {
   }): Promise<void> {
     const { email, reason, expiresAt, metadata } = params;
 
-    // * ON CONFLICT UPDATE refreshes the suppression window on a repeat bounce (a genuinely new event — Svix replays
-    // * are stopped upstream by the webhook inbox guard), so a lapsed-then-rebounced address is re-suppressed afresh.
     await this.query(
       `INSERT INTO "mail_suppressions" ("id", "email", "reason", "metadata", "expires_at") VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT ("email") DO UPDATE SET "reason" = EXCLUDED."reason", "metadata" = EXCLUDED."metadata", "expires_at" = EXCLUDED."expires_at"`,

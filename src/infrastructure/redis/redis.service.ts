@@ -14,12 +14,11 @@ export class RedisService implements OnApplicationShutdown {
   private readonly bullClient: Redis;
 
   constructor() {
-    // * Fail-closed (enableOfflineQueue=false): a command issued while down rejects instead of buffering silently, so Redis-only guarantees (idempotency, replay guards) surface a 503. BullMQ client keeps the default offline queue — it needs it for blocking commands.
+    // ! Fail-closed: a command issued while down must reject, not buffer. BullMQ keeps the offline queue — it blocks.
     this.client = this.createClient({
       name: 'general',
       options: { commandTimeout: env.REDIS_COMMAND_TIMEOUT_MS, enableOfflineQueue: false },
     });
-    // * getClient() hands out a wrapped handle so a connectivity error becomes a 503 at the source; callers degrading gracefully just catch it.
     this.failClosedClient = wrapRedisClient(this.client);
     this.bullClient = this.createClient({ name: 'bullmq', options: { maxRetriesPerRequest: null } });
   }

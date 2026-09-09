@@ -1,7 +1,4 @@
-// * The catalogue of auditable events. Named `<area>.<subject>.<past-tense verb>` so a prefix filter answers
-// * "everything that happened to sessions" or "everything an admin did" without a schema change.
 export enum AuditAction {
-  // Identity & security events, recorded for the account they concern.
   AuthLoginSucceeded = 'auth.login.succeeded',
   AuthLoginFailed = 'auth.login.failed',
   AuthLogout = 'auth.logout',
@@ -18,7 +15,6 @@ export enum AuditAction {
   AccountErased = 'account.erased',
   AccountDataExported = 'account.data.exported',
 
-  // Administrative mutations, recorded for the actor who performed them.
   AdminUserSuspended = 'admin.user.suspended',
   AdminUserRestored = 'admin.user.restored',
   AdminUserSessionsRevoked = 'admin.user.sessions_revoked',

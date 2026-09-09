@@ -5,8 +5,7 @@ export const sendMailSchema = z.object({
   subject: z.string().min(1),
   template: z.string().min(1),
   context: z.record(z.string(), z.unknown()),
-  // * Security-critical mail (verification, password reset) MUST reach the user, so MailService lets it bypass the
-  // * suppression list. Carried on the job so the flag survives the queue hop. Defaults to non-critical.
+  // * Bypasses the suppression list, so a bounce can never lock someone out of account recovery.
   securityCritical: z.boolean().optional(),
 });
 

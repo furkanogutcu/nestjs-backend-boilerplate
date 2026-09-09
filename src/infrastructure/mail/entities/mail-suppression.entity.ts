@@ -16,8 +16,6 @@ export class MailSuppression {
   @Column({ type: 'jsonb', nullable: true })
   metadata!: Record<string, unknown> | null;
 
-  // * When the suppression lapses. Bounded so a false-positive / now-fixed address recovers; a repeat bounce refreshes
-  // * it. Null would be a permanent suppression, but the webhook always writes a finite value.
   @Column({ type: 'timestamptz', nullable: true })
   expiresAt!: Date | null;
 

@@ -21,7 +21,6 @@ const DOCS_CSP = [
 ].join('; ');
 
 export function setupDocs(app: INestApplication): void {
-  // * API docs are never exposed in production; the surface is dev/staging only.
   if (env.NODE_ENV === 'production') {
     return;
   }
@@ -43,9 +42,7 @@ export function setupDocs(app: INestApplication): void {
   app.use(DOCS_PATH, apiReference({ content: document }));
 }
 
-// * Docs are dev/staging-only, but a staging/preview surface still reaches an untrusted network. When the
-// * operator credentials are configured, put both the rendered docs and the raw OpenAPI JSON behind basic-auth.
-// * Registered before the route handlers so the guard runs first.
+// ! Registered before the route handlers so basic-auth also guards the raw OpenAPI JSON.
 function applyDocsAuth(app: INestApplication): void {
   const user = env.DOCS_AUTH_USER;
   const password = env.DOCS_AUTH_PASSWORD;

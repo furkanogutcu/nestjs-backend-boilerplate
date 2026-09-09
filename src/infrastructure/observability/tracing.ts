@@ -39,8 +39,7 @@ export function startTracing(): void {
     'deployment.environment': env.NODE_ENV,
   });
 
-  // ! Every exporter is wrapped: scrubbing at the SDK boundary is what keeps caller IPs and query strings
-  // ! out of the trace backend, and the console exporter is used in debug runs on real request data too.
+  // ! Every exporter is wrapped, the console one included: scrubbing at the SDK boundary is what keeps PII out.
   const traceExporter = new ScrubbingSpanExporter(
     env.OTEL_DEBUG
       ? new ConsoleSpanExporter()
@@ -77,8 +76,6 @@ export function startTracing(): void {
   sdk.start();
 }
 
-// * Called by the shutdown sequence in main.ts rather than a signal handler here, so telemetry is flushed
-// * only after the app has closed and every last span has been recorded.
 export async function shutdownTracing(): Promise<void> {
   if (!sdk) {
     return;
