@@ -52,6 +52,6 @@ import { TokenService } from './services/token.service';
     AuthGuard,
     RefreshCookieInterceptor,
   ],
-  exports: [TokenService, RevocationService, AuthGuard],
+  exports: [TokenService, RevocationService, AuthGuard, SessionService],
 })
 export class AuthModule {}

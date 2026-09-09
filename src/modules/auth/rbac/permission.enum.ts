@@ -12,6 +12,8 @@ export enum Permission {
   RolesWrite = 'roles:write',
   RolesAssign = 'roles:assign',
   AuditRead = 'audit:read',
+  FeatureFlagsRead = 'feature-flags:read',
+  FeatureFlagsWrite = 'feature-flags:write',
 }
 
 export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
@@ -23,4 +25,6 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   [Permission.RolesWrite]: 'Create, edit and delete roles.',
   [Permission.RolesAssign]: 'Grant and revoke roles on a user.',
   [Permission.AuditRead]: 'Read the audit log.',
+  [Permission.FeatureFlagsRead]: 'List feature flags and their state.',
+  [Permission.FeatureFlagsWrite]: 'Create, toggle and delete feature flags.',
 };

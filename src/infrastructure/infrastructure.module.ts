@@ -4,6 +4,7 @@ import { AuditModule } from './audit/audit.module';
 import { CacheModule } from './cache/cache.module';
 import { ClockModule } from './clock/clock.module';
 import { DatabaseModule } from './database/database.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { HealthModule } from './health/health.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { LifecycleModule } from './lifecycle/lifecycle.module';
@@ -20,6 +21,7 @@ import { StorageModule } from './storage/storage.module';
     LifecycleModule,
     ClockModule,
     AuditModule,
+    FeatureFlagsModule,
     SensitiveModule,
     CacheModule,
     DatabaseModule,
