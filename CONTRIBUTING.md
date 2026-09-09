@@ -50,7 +50,8 @@ Not every PR needs a task. When opening a task would be disproportionate to the 
 
 ## Commit rules (Conventional Commits)
 
-The `commit-msg` hook enforces this via **commitlint** (`@commitlint/config-conventional`). Format:
+The `commit-msg` hook enforces this via **commitlint** — `@commitlint/config-conventional` plus two local rules
+in `commitlint.config.mjs` that enforce the single-line and no-trailer rules below. Format:
 `type(scope): subject` — e.g. `feat(users): add profile endpoint`.
 
 | Type                                                              | Version impact | Usage                   |
@@ -62,10 +63,10 @@ The `commit-msg` hook enforces this via **commitlint** (`@commitlint/config-conv
 
 - **Breaking change:** add `BREAKING CHANGE: ...` to the footer or a `!` to the type (`feat!: ...`) → **major**.
 - The subject is short, imperative, and lowercase; it does not end with a period.
-- **The commit message is a single line:** only the `type(scope): subject` subject line is written, with **no body** (e.g. `feat(auth): add guest login`). The agent likewise provides no body in the commit messages it proposes.
+- **The commit message is a single line:** only the `type(scope): subject` subject line is written, with **no body** (e.g. `feat(auth): add guest login`). The agent likewise provides no body in the commit messages it proposes. Enforced by the `body-empty` rule; a footer is not a body, so `BREAKING CHANGE:` and `Refs:` still pass.
   - **Exception — the squash-merge commit:** this rule is for _development_ commits. When a PR is squash-merged, the commit that lands on `main` is a release/history artifact; the PR title becomes the subject, and the commit may carry a **structured body** (notable-change items + a `BREAKING CHANGE:`/`Refs:` footer). This body does not pollute the changelog (the changelog is generated only from the subject + `BREAKING CHANGE`). Template: ["PR and squash-merge template"](#pr-and-squash-merge-template).
 - The entire commit message is written in **English**; Turkish commit messages are neither committed nor proposed.
-- **No** co-author/trailer line (e.g. `Co-Authored-By:`) is added to the commit message.
+- **No** co-author/trailer line (e.g. `Co-Authored-By:`, `Signed-off-by:`) is added to the commit message. Enforced by the local `footer-trailers-allowlist` rule, which admits only `BREAKING CHANGE` and `Refs` as footer tokens.
 
 ## PR and squash-merge template
 
