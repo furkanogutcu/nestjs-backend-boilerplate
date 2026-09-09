@@ -6,6 +6,7 @@ import tseslint from 'typescript-eslint'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 
 import entityTableNamePlural from './eslint-rules/entity-table-name-plural.mjs'
+import routeResponseSchema from './eslint-rules/route-response-schema.mjs'
 
 export default tseslint.config(
   {
@@ -126,6 +127,19 @@ export default tseslint.config(
     ],
     rules: {
       'no-restricted-syntax': 'off',
+    },
+  },
+  {
+    files: ['**/*.controller.ts'],
+    plugins: {
+      local: {
+        rules: {
+          'route-response-schema': routeResponseSchema,
+        },
+      },
+    },
+    rules: {
+      'local/route-response-schema': 'error',
     },
   },
   {

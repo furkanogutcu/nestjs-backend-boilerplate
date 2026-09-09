@@ -7,6 +7,7 @@ import { RbacAndMfa1788964220075 } from '@database/migrations/1788964220075-rbac
 import { AuditEvents1788966269650 } from '@database/migrations/1788966269650-audit-events';
 import { FeatureFlags1788968844093 } from '@database/migrations/1788968844093-feature-flags';
 import { AccountDeletion1788970880351 } from '@database/migrations/1788970880351-account-deletion';
+import { Posts1788974169813 } from '@database/migrations/1788974169813-posts';
 
 // * Every migration an integration test's throwaway Postgres runs, listed once here so a new migration is added
 // * in one place instead of in every spec. Keep this in the same order as the migrations directory — running the
@@ -18,6 +19,7 @@ export const SCHEMA_MIGRATIONS = [
   AuditEvents1788966269650,
   FeatureFlags1788968844093,
   AccountDeletion1788970880351,
+  Posts1788974169813,
 ];
 
 export function createMockRepository<T extends ObjectLiteral = ObjectLiteral>(): DeepMocked<Repository<T>> {

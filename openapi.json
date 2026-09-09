@@ -10332,6 +10332,2596 @@
           "Admin"
         ]
       }
+    },
+    "/api/v1/posts": {
+      "get": {
+        "description": "Public, paginated, searchable by title or slug.",
+        "operationId": "PostsController_list_api/v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "A page of published posts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "Post id",
+                            "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                          },
+                          "slug": {
+                            "type": "string",
+                            "description": "URL-safe identifier",
+                            "example": "hello-world"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Post title",
+                            "example": "Hello world"
+                          },
+                          "body": {
+                            "type": "string",
+                            "description": "Post body",
+                            "example": "The first paragraph…"
+                          },
+                          "cover_image_url": {
+                            "nullable": true,
+                            "description": "Public URL of the cover image, null when none is set",
+                            "example": "https://cdn.example.com/public/posts/…/cover",
+                            "type": "string"
+                          },
+                          "published_at": {
+                            "nullable": true,
+                            "description": "When the post went live; null means it is still a draft",
+                            "example": "2026-01-01T00:00:00.000Z",
+                            "type": "string"
+                          },
+                          "author_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "Who wrote it",
+                            "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "description": "When the post was created",
+                            "example": "2026-01-01T00:00:00.000Z"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "slug",
+                          "title",
+                          "body",
+                          "cover_image_url",
+                          "published_at",
+                          "author_id",
+                          "created_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "offset"
+                              ],
+                              "example": "offset"
+                            },
+                            "page": {
+                              "type": "integer",
+                              "example": 1
+                            },
+                            "page_size": {
+                              "type": "integer",
+                              "example": 20
+                            },
+                            "total_count": {
+                              "type": "integer",
+                              "example": 0
+                            },
+                            "total_pages": {
+                              "type": "integer",
+                              "example": 0
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "page",
+                            "page_size",
+                            "total_count",
+                            "total_pages"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "pagination"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "List published posts",
+        "tags": [
+          "Posts"
+        ]
+      },
+      "post": {
+        "description": "Idempotent via Idempotency-Key: a retried create returns the first result instead of a duplicate.",
+        "operationId": "PostsController_create_api/v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "The created draft.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Post id",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "description": "URL-safe identifier",
+                          "example": "hello-world"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Post title",
+                          "example": "Hello world"
+                        },
+                        "body": {
+                          "type": "string",
+                          "description": "Post body",
+                          "example": "The first paragraph…"
+                        },
+                        "cover_image_url": {
+                          "nullable": true,
+                          "description": "Public URL of the cover image, null when none is set",
+                          "example": "https://cdn.example.com/public/posts/…/cover",
+                          "type": "string"
+                        },
+                        "published_at": {
+                          "nullable": true,
+                          "description": "When the post went live; null means it is still a draft",
+                          "example": "2026-01-01T00:00:00.000Z",
+                          "type": "string"
+                        },
+                        "author_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Who wrote it",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "description": "When the post was created",
+                          "example": "2026-01-01T00:00:00.000Z"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "title",
+                        "body",
+                        "cover_image_url",
+                        "published_at",
+                        "author_id",
+                        "created_at"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required or has failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthorized"
+                          ],
+                          "example": "unauthorized"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Authentication is required"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The request conflicts with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "some_fields_already_exists",
+                            "conflict"
+                          ],
+                          "example": "some_fields_already_exists"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "A resource with these fields already exists"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "already_exists",
+                              "path": "name",
+                              "issue": "Already exists"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a draft",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/api/v1/posts/{slug}": {
+      "get": {
+        "description": "Public and cached; drafts are not reachable here.",
+        "operationId": "PostsController_getBySlug_api/v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The published post.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Post id",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "description": "URL-safe identifier",
+                          "example": "hello-world"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Post title",
+                          "example": "Hello world"
+                        },
+                        "body": {
+                          "type": "string",
+                          "description": "Post body",
+                          "example": "The first paragraph…"
+                        },
+                        "cover_image_url": {
+                          "nullable": true,
+                          "description": "Public URL of the cover image, null when none is set",
+                          "example": "https://cdn.example.com/public/posts/…/cover",
+                          "type": "string"
+                        },
+                        "published_at": {
+                          "nullable": true,
+                          "description": "When the post went live; null means it is still a draft",
+                          "example": "2026-01-01T00:00:00.000Z",
+                          "type": "string"
+                        },
+                        "author_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Who wrote it",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "description": "When the post was created",
+                          "example": "2026-01-01T00:00:00.000Z"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "title",
+                        "body",
+                        "cover_image_url",
+                        "published_at",
+                        "author_id",
+                        "created_at"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "resource_not_found"
+                          ],
+                          "example": "resource_not_found"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Resource not found."
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get a published post",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/api/v1/me/posts": {
+      "get": {
+        "description": "Everything the caller wrote, drafts included.",
+        "operationId": "PostsController_listOwn_api/v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "A page of the caller’s posts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "Post id",
+                            "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                          },
+                          "slug": {
+                            "type": "string",
+                            "description": "URL-safe identifier",
+                            "example": "hello-world"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Post title",
+                            "example": "Hello world"
+                          },
+                          "body": {
+                            "type": "string",
+                            "description": "Post body",
+                            "example": "The first paragraph…"
+                          },
+                          "cover_image_url": {
+                            "nullable": true,
+                            "description": "Public URL of the cover image, null when none is set",
+                            "example": "https://cdn.example.com/public/posts/…/cover",
+                            "type": "string"
+                          },
+                          "published_at": {
+                            "nullable": true,
+                            "description": "When the post went live; null means it is still a draft",
+                            "example": "2026-01-01T00:00:00.000Z",
+                            "type": "string"
+                          },
+                          "author_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "description": "Who wrote it",
+                            "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "description": "When the post was created",
+                            "example": "2026-01-01T00:00:00.000Z"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "slug",
+                          "title",
+                          "body",
+                          "cover_image_url",
+                          "published_at",
+                          "author_id",
+                          "created_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "offset"
+                              ],
+                              "example": "offset"
+                            },
+                            "page": {
+                              "type": "integer",
+                              "example": 1
+                            },
+                            "page_size": {
+                              "type": "integer",
+                              "example": 20
+                            },
+                            "total_count": {
+                              "type": "integer",
+                              "example": 0
+                            },
+                            "total_pages": {
+                              "type": "integer",
+                              "example": 0
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "page",
+                            "page_size",
+                            "total_count",
+                            "total_pages"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "pagination"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required or has failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthorized"
+                          ],
+                          "example": "unauthorized"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Authentication is required"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List my posts",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/api/v1/posts/{postId}": {
+      "patch": {
+        "description": "Only the author can edit.",
+        "operationId": "PostsController_update_api/v1",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The updated post.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Post id",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "description": "URL-safe identifier",
+                          "example": "hello-world"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Post title",
+                          "example": "Hello world"
+                        },
+                        "body": {
+                          "type": "string",
+                          "description": "Post body",
+                          "example": "The first paragraph…"
+                        },
+                        "cover_image_url": {
+                          "nullable": true,
+                          "description": "Public URL of the cover image, null when none is set",
+                          "example": "https://cdn.example.com/public/posts/…/cover",
+                          "type": "string"
+                        },
+                        "published_at": {
+                          "nullable": true,
+                          "description": "When the post went live; null means it is still a draft",
+                          "example": "2026-01-01T00:00:00.000Z",
+                          "type": "string"
+                        },
+                        "author_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Who wrote it",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "description": "When the post was created",
+                          "example": "2026-01-01T00:00:00.000Z"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "title",
+                        "body",
+                        "cover_image_url",
+                        "published_at",
+                        "author_id",
+                        "created_at"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required or has failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthorized"
+                          ],
+                          "example": "unauthorized"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Authentication is required"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks permission for this resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "insufficient_permissions"
+                          ],
+                          "example": "insufficient_permissions"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "You do not have permission to perform this action"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "resource_not_found"
+                          ],
+                          "example": "resource_not_found"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Resource not found."
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a post",
+        "tags": [
+          "Posts"
+        ]
+      },
+      "delete": {
+        "description": "Only the author can delete.",
+        "operationId": "PostsController_remove_api/v1",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a post",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/api/v1/posts/{postId}/publication": {
+      "post": {
+        "description": "Makes a draft publicly readable.",
+        "operationId": "PostsController_publish_api/v1",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The published post.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Post id",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "description": "URL-safe identifier",
+                          "example": "hello-world"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Post title",
+                          "example": "Hello world"
+                        },
+                        "body": {
+                          "type": "string",
+                          "description": "Post body",
+                          "example": "The first paragraph…"
+                        },
+                        "cover_image_url": {
+                          "nullable": true,
+                          "description": "Public URL of the cover image, null when none is set",
+                          "example": "https://cdn.example.com/public/posts/…/cover",
+                          "type": "string"
+                        },
+                        "published_at": {
+                          "nullable": true,
+                          "description": "When the post went live; null means it is still a draft",
+                          "example": "2026-01-01T00:00:00.000Z",
+                          "type": "string"
+                        },
+                        "author_id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "Who wrote it",
+                          "example": "01923a45-b6c7-78d9-8a1b-2c3d4e5f6789"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "description": "When the post was created",
+                          "example": "2026-01-01T00:00:00.000Z"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "title",
+                        "body",
+                        "cover_image_url",
+                        "published_at",
+                        "author_id",
+                        "created_at"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required or has failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthorized"
+                          ],
+                          "example": "unauthorized"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Authentication is required"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks permission for this resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "insufficient_permissions"
+                          ],
+                          "example": "insufficient_permissions"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "You do not have permission to perform this action"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "resource_not_found"
+                          ],
+                          "example": "resource_not_found"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Resource not found."
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The request conflicts with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "some_fields_already_exists",
+                            "conflict"
+                          ],
+                          "example": "some_fields_already_exists"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "A resource with these fields already exists"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "already_exists",
+                              "path": "name",
+                              "issue": "Already exists"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a post",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/api/v1/posts/{postId}/cover-upload": {
+      "post": {
+        "description": "The client PUTs the image straight to storage; the server never handles the bytes.",
+        "operationId": "PostsController_coverUpload_api/v1",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A short-lived signed upload URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "description": "Signed URL to PUT the image to",
+                          "example": "https://bucket.example.com/…"
+                        },
+                        "key": {
+                          "type": "string",
+                          "description": "Storage key the image will live under",
+                          "example": "public/posts/…/cover"
+                        },
+                        "expires_in_seconds": {
+                          "type": "number",
+                          "description": "How long the signed URL stays valid",
+                          "example": 300
+                        },
+                        "required_headers": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          },
+                          "description": "Headers that must match the signature. Browsers set Content-Length themselves."
+                        }
+                      },
+                      "required": [
+                        "url",
+                        "key",
+                        "expires_in_seconds",
+                        "required_headers"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required or has failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthorized"
+                          ],
+                          "example": "unauthorized"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Authentication is required"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks permission for this resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "insufficient_permissions"
+                          ],
+                          "example": "insufficient_permissions"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "You do not have permission to perform this action"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "resource_not_found"
+                          ],
+                          "example": "resource_not_found"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Resource not found."
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a signed cover upload URL",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/api/v1/admin/posts/{postId}": {
+      "delete": {
+        "description": "Moderation route: bypasses ownership, requires a permission and is recorded in the audit log.",
+        "operationId": "AdminPostsController_remove_api/v1",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove any post",
+        "tags": [
+          "Admin"
+        ]
+      }
     }
   },
   "info": {

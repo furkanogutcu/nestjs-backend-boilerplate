@@ -27,10 +27,12 @@ export enum AuditAction {
   AdminRoleCreated = 'admin.role.created',
   AdminRoleUpdated = 'admin.role.updated',
   AdminRoleDeleted = 'admin.role.deleted',
+  PostRemovedByModerator = 'admin.post.removed',
 }
 
 export enum AuditSubjectType {
   User = 'user',
   Role = 'role',
   Session = 'session',
+  Post = 'post',
 }

@@ -10,11 +10,10 @@ returned data is stored, and what to watch out for are the responsibility of the
 
 ## Guides
 
-| #   | Document                             | Topic                                                          |
-| --- | ------------------------------------ | -------------------------------------------------------------- |
-| 00  | **this document**                    | Common concepts and contract that apply across all integration |
-| 01  | [`01-auth.md`](./01-auth.md)         | Identity: email/password, OAuth, guest, token model, transport |
-| 05  | [`05-realtime.md`](./05-realtime.md) | Real-time push channel (WebSocket)                             |
+| #   | Document                     | Topic                                                          |
+| --- | ---------------------------- | -------------------------------------------------------------- |
+| 00  | **this document**            | Common concepts and contract that apply across all integration |
+| 01  | [`01-auth.md`](./01-auth.md) | Identity: email/password, OAuth, guest, token model, transport |
 
 As domain modules are added, further guides (`02-…`, …) are added to this series.
 
@@ -50,3 +49,8 @@ The backend wraps every response in a fixed envelope:
 
 Wire fields and query params are **`snake_case`** (`page_size`, `order_by`, `created_at`). The cursor/offset
 pagination meta body has a standard shape (`openapi.json`).
+
+| Guide                        | What it covers                                                   |
+| ---------------------------- | ---------------------------------------------------------------- |
+| [01-auth.md](./01-auth.md)   | Identity: email/password, OAuth, guests, tokens and MFA          |
+| [02-posts.md](./02-posts.md) | The example domain module: reads, writes, uploads and moderation |

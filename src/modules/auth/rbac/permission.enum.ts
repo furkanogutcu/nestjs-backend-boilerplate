@@ -14,6 +14,7 @@ export enum Permission {
   AuditRead = 'audit:read',
   FeatureFlagsRead = 'feature-flags:read',
   FeatureFlagsWrite = 'feature-flags:write',
+  PostsModerate = 'posts:moderate',
 }
 
 export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
@@ -27,4 +28,5 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   [Permission.AuditRead]: 'Read the audit log.',
   [Permission.FeatureFlagsRead]: 'List feature flags and their state.',
   [Permission.FeatureFlagsWrite]: 'Create, toggle and delete feature flags.',
+  [Permission.PostsModerate]: "Remove any user's post.",
 };

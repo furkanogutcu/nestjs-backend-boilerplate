@@ -9,6 +9,7 @@ import { AuthGuard } from '@modules/auth/guards/auth.guard';
 import { PrivacyModule } from '@modules/auth/privacy/privacy.module';
 import { PermissionGuard } from '@modules/auth/rbac/guards/permission.guard';
 import { RbacModule } from '@modules/auth/rbac/rbac.module';
+import { PostsModule } from '@modules/posts/posts.module';
 import { GlobalExceptionFilter } from '@shared/exceptions/filters/global.filter';
 import { IpRateLimiterGuard } from '@shared/guards/ip-rate-limit.guard';
 import { RequireHttpsGuard } from '@shared/guards/require-https.guard';
@@ -20,7 +21,7 @@ import { ResponseInterceptor } from '@shared/interceptors/response.interceptor';
 import { AppZodValidationPipe } from '@shared/pipes/app-zod-validation.pipe';
 
 @Module({
-  imports: [InfrastructureModule, AuthModule, RbacModule, PrivacyModule, AdminModule],
+  imports: [InfrastructureModule, AuthModule, RbacModule, PrivacyModule, AdminModule, PostsModule],
   providers: [
     { provide: APP_PIPE, useClass: AppZodValidationPipe },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
