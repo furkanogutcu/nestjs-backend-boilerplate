@@ -18,8 +18,7 @@ import {
 } from '../../constants/auth.constant';
 import { GameCenterVerifier } from './game-center-verifier.service';
 
-// * X509 parsing is mocked (a runtime RSA key stands in for Apple's cert) but createSign/createVerify run for real, so the signature check is genuine.
-// * Leaf certs come from a Buffer, pinned anchors from PEM strings, so the mock distinguishes them and drives chain/subject outcomes via certState.
+// * X509 parsing is mocked, but createSign/createVerify run for real, so the signature check is genuine.
 const APPLE_SUBJECT = 'C=US\nST=California\nL=Cupertino\nO=Apple Inc.\nOU=management:idms.group.533771\nCN=Apple Inc.';
 
 const certState: {
@@ -65,7 +64,6 @@ vi.mock('crypto', async () => {
     }
 
     verify(): boolean {
-      // * Leaf: did the pinned intermediate sign it? Anchors: the construction-time root self-check.
       return this.leaf ? certState.chainValid : true;
     }
   }
@@ -277,9 +275,6 @@ describe('GameCenterVerifier', () => {
     await verifier.verify(assertion);
     const firstKey = (redis.set.mock.calls[0] as unknown[])[0];
 
-    // * base64url re-encoding of the same signature decodes to identical bytes (a valid RSA signature), yet is a
-    // * different string. The guard must land on the same key, else the single-use control is bypassable by replaying
-    // * a re-encoded copy within the freshness window.
     const reEncoded = Buffer.from(assertion.signature, 'base64').toString('base64url');
     redis.set.mockClear();
 
@@ -301,7 +296,6 @@ describe('GameCenterVerifier', () => {
   });
 
   it('fails closed with a 503 (not a 401) when the replay guard store is unavailable', async () => {
-    // * verify()'s catch-all must let a Redis-outage 503 through rather than masking it as an invalid-signature 401.
     redis.set.mockRejectedValue(new AppServiceUnavailableException());
 
     await expect(verifier.verify(buildAssertion())).rejects.toBeInstanceOf(AppServiceUnavailableException);

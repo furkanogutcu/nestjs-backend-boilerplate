@@ -28,7 +28,6 @@ describe('PasswordStrengthService', () => {
   it('penalises a password that matches a supplied user input (e.g. the account email)', () => {
     const password = 'correct-horse-battery-staple';
 
-    // * Strong on its own, but rejected once the same string is fed as a user input — proves userInputs is honoured.
     expect(() => service.assertStrong({ password })).not.toThrow();
     expect(() => service.assertStrong({ password, userInputs: [password] })).toThrow(AppBadRequestException);
   });

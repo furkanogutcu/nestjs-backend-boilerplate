@@ -32,7 +32,6 @@ describe('ResendWebhookService', () => {
     });
     suppressionRepository = createMock<MailSuppressionRepository>();
     redisClient = createMock<Redis>();
-    // * Default: this delivery is the first for its Svix id, so the inbox claim succeeds and processing runs.
     redisClient.set.mockResolvedValue('OK');
     const redisService = createMock<RedisService>();
     redisService.getClient.mockReturnValue(redisClient);

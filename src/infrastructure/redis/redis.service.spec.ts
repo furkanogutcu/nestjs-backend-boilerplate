@@ -16,7 +16,6 @@ describe('RedisService', () => {
   it('leaves the BullMQ client on the default offline queue', () => {
     service = new RedisService();
 
-    // * BullMQ needs the offline queue for blocking commands, so the fail-fast policy must not extend to this client.
     expect(service.getBullConnection().options.enableOfflineQueue).not.toBe(false);
   });
 });

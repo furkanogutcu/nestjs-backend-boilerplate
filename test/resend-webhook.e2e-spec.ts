@@ -18,8 +18,7 @@ describe('ResendWebhookController (e2e)', () => {
 
     app = moduleRef.createNestApplication<NestExpressApplication>({ rawBody: true, logger: false });
     app.useBodyParser('json');
-    // * Enable the same URI versioning as the real app so this locks in that the webhook stays VERSION_NEUTRAL
-    // * (reachable at /webhooks/resend, off the /api/v<n> prefix Resend must not have to track).
+    // * Versioning is enabled here so the suite proves the webhook stays off the /api/v<n> prefix.
     app.enableVersioning(versioningConfig);
     await app.init();
   });

@@ -1,4 +1,4 @@
-// * env.config validates process.env at import and exits on failure; this setupFiles entry provides a valid env before any source module loads.
+// ! Must load before any source module: env.config validates and exits at import.
 const testEnv: Record<string, string> = {
   NODE_ENV: 'test',
   PORT: '3000',
@@ -24,7 +24,6 @@ const testEnv: Record<string, string> = {
   PLAY_GAMES_OAUTH_CLIENT_ID: 'test-play-games-client.apps.googleusercontent.com',
   PLAY_GAMES_OAUTH_CLIENT_SECRET: 'test-play-games-client-secret',
 
-  // * Configured so the credential-gated /metrics and docs basic-auth is exercised by e2e specs.
   DOCS_AUTH_USER: 'metrics',
   DOCS_AUTH_PASSWORD: 'metrics-auth-password-0123456789',
 };

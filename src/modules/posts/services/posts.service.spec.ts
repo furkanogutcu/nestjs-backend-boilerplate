@@ -71,7 +71,6 @@ describe('PostsService', () => {
     });
 
     it('rebuilds the timestamps a JSON cache round-trip flattened into strings', async () => {
-      // * What Redis actually returns: the same object with its Dates serialised.
       cacheService.get.mockResolvedValue(JSON.parse(JSON.stringify(buildPost({ publishedAt: NOW }))) as Post);
 
       const post = await service.getPublishedBySlug({ slug: 'hello-world' });

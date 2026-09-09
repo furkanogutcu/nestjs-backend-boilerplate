@@ -223,7 +223,6 @@ describe('tracing', () => {
     });
 
     it('matches operational paths by prefix (a documented over-match)', async () => {
-      // * The hook uses startsWith, so any path sharing an operational prefix is also ignored.
       expect(await hookFor('/healthz-internal')).toBe(true);
     });
 

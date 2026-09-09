@@ -35,7 +35,6 @@ class OpenController {
   }
 }
 
-// * Asserts guard ordering: an exhausted per-IP budget 429s before AuthGuard inspects the token (collaborators stubbed).
 describe('Rate-limit guard ordering (e2e)', () => {
   let app: INestApplication;
   let rateLimitService: DeepMocked<RateLimitService>;

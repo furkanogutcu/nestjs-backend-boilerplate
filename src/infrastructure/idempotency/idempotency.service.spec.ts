@@ -121,7 +121,7 @@ describe('IdempotencyService', () => {
   it('propagates the original compute error even when the best-effort lock release fails', async () => {
     redis.get.mockResolvedValue(null);
     redis.set.mockResolvedValue('OK');
-    // * eval here is the RELEASE_IF_OWNED script; its failure must not mask the compute error.
+    // * The eval here is RELEASE_IF_OWNED; its failure must not mask the compute error.
     redis.eval.mockRejectedValue(new Error('release script failed'));
     sensitiveService.encrypt.mockReturnValue('encrypted');
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
@@ -184,7 +184,6 @@ describe('IdempotencyService', () => {
   it('recomputes after an undecryptable entry even when purging the garbage fails', async () => {
     redis.get.mockResolvedValueOnce('garbage').mockResolvedValue(null);
     redis.set.mockResolvedValue('OK');
-    // * Purge is best-effort: a failed DEL must not stop the request from reclaiming the slot and recomputing.
     redis.del.mockRejectedValue(new Error('purge failed'));
     sensitiveService.encrypt.mockReturnValue('encrypted');
     sensitiveService.decrypt.mockImplementation(() => {

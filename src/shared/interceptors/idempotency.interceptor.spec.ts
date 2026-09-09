@@ -124,8 +124,6 @@ describe('IdempotencyInterceptor', () => {
     expect(service.execute).toHaveBeenCalledWith(
       expect.objectContaining({
         scope: 'auth:guest',
-        // * Anonymous principal is now the client's network identity: sha256(ip:user-agent). The mock request has
-        // * ip 127.0.0.1 and no user-agent.
         principal: createHash('sha256').update('127.0.0.1:').digest('hex'),
         key: ANON_KEY,
         fingerprint: createHash('sha256')
@@ -272,7 +270,7 @@ describe('IdempotencyInterceptor', () => {
       request: { headers: { 'idempotency-key': VALID_KEY } },
     });
 
-    // * VALID_KEY is 20 chars: fine for a user route, but below the anonymous entropy floor (>=24).
+    // * VALID_KEY is 20 chars — below the anonymous floor of 24.
     expect(() => interceptor.intercept(context, createCallHandler('x'))).toThrow(AppValidationException);
   });
 

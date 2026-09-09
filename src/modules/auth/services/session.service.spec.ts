@@ -89,7 +89,6 @@ describe('SessionService', () => {
       const { session } = await service.issue({ userId: 'user-1', linked: true });
 
       expect(session.chainExpiresAt?.getTime()).toBe(now + 7776000 * 1000);
-      // * Idle window (30d) is shorter than the cap (90d), so it still governs the first expiry.
       expect(session.expiresAt.getTime()).toBe(now + 2592000 * 1000);
     });
 

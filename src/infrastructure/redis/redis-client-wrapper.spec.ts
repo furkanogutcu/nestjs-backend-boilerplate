@@ -53,7 +53,6 @@ describe('wrapRedisClient', () => {
 
   it('returns a synchronous command result without attaching promise handling', () => {
     const client = createMock<Redis>();
-    // * EventEmitter helpers on the client (e.g. listenerCount) return synchronously and must bypass the .catch() wrapper.
     client.listenerCount.mockReturnValue(3);
 
     expect(wrapRedisClient(client).listenerCount('connect')).toBe(3);

@@ -4,9 +4,7 @@ import { join, resolve } from 'node:path';
 import pluralize from 'pluralize';
 import { getMetadataArgsStorage } from 'typeorm';
 
-// * Guard: every DB table name must be plural snake_case so no singular table is ever created.
-// Mirrors the `local/entity-table-name-plural` ESLint rule but asserts the resolved TypeORM
-// metadata name (also covering entities that omit the explicit @Entity('...') argument).
+// * Asserts the resolved TypeORM metadata name, so entities without an explicit @Entity('...') are covered too.
 describe('database table naming', () => {
   const srcDir = resolve(process.cwd(), 'src');
 

@@ -3,9 +3,7 @@ import { DataSource } from 'typeorm';
 
 import { AuditEvent } from './entities/audit-event.entity';
 
-// * Proves the guarantee the audit table is built on: the application role can append and read, but cannot
-// * rewrite or erase. The migration only applies the revoke when the application and migration roles differ, so
-// * this suite creates that separation explicitly — a single-role setup cannot demonstrate it.
+// * The suite creates the two-role separation itself: a single-role setup cannot demonstrate the revoke.
 describe('audit_events append-only grant (integration)', () => {
   const APPLICATION_ROLE = 'app_runtime';
   const APPLICATION_PASSWORD = 'app_runtime_password';
@@ -28,7 +26,6 @@ describe('audit_events append-only grant (integration)', () => {
     await ownerDataSource.query(`CREATE ROLE "${APPLICATION_ROLE}" LOGIN PASSWORD '${APPLICATION_PASSWORD}'`);
     await ownerDataSource.query(`GRANT USAGE ON SCHEMA public TO "${APPLICATION_ROLE}"`);
     await ownerDataSource.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON "audit_events" TO "${APPLICATION_ROLE}"`);
-    // * The line the migration runs in production.
     await ownerDataSource.query(`REVOKE UPDATE, DELETE ON "audit_events" FROM "${APPLICATION_ROLE}"`);
 
     applicationDataSource = new DataSource({

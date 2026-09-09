@@ -11,10 +11,7 @@ import { AdminRolesService } from '@modules/admin/roles/services/admin-roles.ser
 import { GlobalExceptionFilter } from '@shared/exceptions/filters/global.filter';
 import { ResponseInterceptor } from '@shared/interceptors/response.interceptor';
 
-// ! Controller unit tests never run ResponseInterceptor, so a route whose @ResponseDto schema does not match
-// ! what it actually returns passes them and fails in production with a 500. These cases exist to catch that:
-// ! the interceptor validates each item against the declared schema, so a list route must declare the ITEM
-// ! schema, not an array of it.
+// ! Controller unit tests never run ResponseInterceptor, so only these cases catch a mismatched @ResponseDto.
 describe('Admin response envelopes (e2e)', () => {
   let app: INestApplication;
   const adminRolesService = createMock<AdminRolesService>();

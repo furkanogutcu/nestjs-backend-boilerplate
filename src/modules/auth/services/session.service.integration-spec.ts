@@ -135,7 +135,6 @@ describe('SessionService (integration)', () => {
   it('carries the chain deadline across rotation and lets it kill the chain once reached', async () => {
     const issued = await service.issue({ userId, linked: true });
 
-    // * Simulate the chain nearing its absolute deadline; the successor's idle window clamps to it.
     const nearDeadline = new Date(Date.now() + 1000);
     await dataSource.getRepository(Session).update({ id: issued.session.id }, { chainExpiresAt: nearDeadline });
 

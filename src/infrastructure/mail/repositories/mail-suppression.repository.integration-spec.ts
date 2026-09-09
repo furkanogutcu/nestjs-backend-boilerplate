@@ -66,7 +66,6 @@ describe('MailSuppressionRepository (integration)', () => {
 
     const row = await repository.findOneByOrFail({ email: 'dupe@app.test' });
     expect(row.reason).toBe(MailSuppressionReason.Complaint);
-    // * A lapsed suppression that re-bounces is re-blocked with a fresh window.
     expect(await repository.isSuppressed('dupe@app.test')).toBe(true);
   });
 

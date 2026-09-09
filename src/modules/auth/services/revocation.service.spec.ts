@@ -113,13 +113,11 @@ describe('RevocationService', () => {
       );
     }
 
-    // * Within the cooldown the open circuit short-circuits without touching the database.
     await expect(service.isRevoked({ sessionId: 'session-1', familyId: 'family-1' })).rejects.toBeInstanceOf(
       AppServiceUnavailableException,
     );
     expect(sessionsRepository.findOne).toHaveBeenCalledTimes(5);
 
-    // * After the cooldown the database is queried again, and a success resets the breaker.
     vi.advanceTimersByTime(5001);
     sessionsRepository.findOne.mockResolvedValue({ id: 'session-1', revokedAt: null } as Session);
     await expect(service.isRevoked({ sessionId: 'session-1', familyId: 'family-1' })).resolves.toBe(false);

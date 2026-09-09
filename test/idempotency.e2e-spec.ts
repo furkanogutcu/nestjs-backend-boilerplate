@@ -151,7 +151,6 @@ describe('Idempotency (e2e)', () => {
     expect(failed.body.error).toMatchObject({ code: 'service_unavailable' });
     getSpy.mockRestore();
 
-    // * The handler advanced exactly once (the healthy call below), proving the 503 request never ran it.
     const after = (await request(server).post('/idem').set('Idempotency-Key', 'e'.repeat(24)).expect(201)).body.data
       .value;
     expect(after).toBe(before + 1);

@@ -12,9 +12,6 @@ import { ResponseInterceptor } from '@shared/interceptors/response.interceptor';
 import { AppZodValidationPipe } from '@shared/pipes/app-zod-validation.pipe';
 import type { OffsetPaginationParams } from '@shared/schemas/offset-pagination.schema';
 
-// * Stands in for stored data the server parses at runtime (e.g. a published catalog snapshot whose shape
-// * predates a schema change): parsing it throws a raw ZodError from inside request handling — exactly the
-// * way BalanceConfigService fails on a stale snapshot.
 const storedDataSchema = z.object({ max_refund_bps: z.number().int() });
 
 @Controller('zod-error-status')
@@ -30,8 +27,7 @@ class ZodErrorStatusTestController {
   }
 }
 
-// * Locks the ZodError HTTP-status invariant end-to-end through the real global stack (pipe + decorators +
-// * filter): client-input ZodErrors are 400 client faults, server-side data ZodErrors are 500 internal faults.
+// * Locks the invariant through the real global stack: client-input ZodErrors are 400, server-side ones 500.
 describe('ZodError HTTP status classification (e2e)', () => {
   let app: INestApplication;
   let loggerError: MockInstance;

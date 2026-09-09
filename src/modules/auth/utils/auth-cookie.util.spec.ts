@@ -67,7 +67,6 @@ describe('auth cookie util', () => {
       headers?: Record<string, unknown>;
     }): Request => ({ cookies, headers }) as unknown as Request;
 
-    // * Capture a genuinely HMAC-signed token straight from setCsrfCookie, so the test never needs the secret.
     const issueSignedCsrf = (): string => {
       const response = createMock<Response>();
 

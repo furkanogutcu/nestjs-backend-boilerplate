@@ -130,7 +130,6 @@ describe('OAuthService (integration)', () => {
     expect(view.displayName).toBe('Alice');
     expect(view.linkedProviders).toEqual([{ provider: OAuthProvider.Google, email: 'a@example.com' }]);
 
-    // * Nonce is single-use: replaying the same id token (same nonce) is rejected.
     await expect(service.linkGoogle({ idToken: 'id', refreshToken })).rejects.toBeInstanceOf(AppUnauthorizedException);
   });
 

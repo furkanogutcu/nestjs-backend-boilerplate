@@ -34,8 +34,6 @@ const mockEnv: IMockEnv = vi.hoisted(() => ({
 
 vi.mock('@config/env.config', () => ({ env: mockEnv }));
 
-// * Proves the part unit tests cannot: that the signed URL is actually honoured by an S3-compatible store, and
-// * that the content type and length baked into the signature are binding rather than advisory.
 describe('StorageService (integration)', () => {
   let container: StartedTestContainer;
   let service: StorageService;

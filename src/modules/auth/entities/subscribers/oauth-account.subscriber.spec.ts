@@ -46,7 +46,6 @@ describe('OAuthAccountSubscriber', () => {
     const rowA = account({ id: 'id-A', email: 'user@example.com' });
     subscriber.beforeInsert(insertEvent(rowA));
 
-    // * Simulate a DB-write attacker copying row A's email ciphertext into a different row (id-B).
     const rowB = account({ id: 'id-B', email: rowA.email });
 
     expect(() => subscriber.afterLoad(rowB)).toThrow(AppInternalException);

@@ -9,9 +9,7 @@ import { FeatureFlags1788968844093 } from '@database/migrations/1788968844093-fe
 import { AccountDeletion1788970880351 } from '@database/migrations/1788970880351-account-deletion';
 import { Posts1788974169813 } from '@database/migrations/1788974169813-posts';
 
-// * Every migration an integration test's throwaway Postgres runs, listed once here so a new migration is added
-// * in one place instead of in every spec. Keep this in the same order as the migrations directory — running the
-// * real extension migration here is what proves the schema boots on a stock Postgres image.
+// ! Keep in the same order as the migrations directory; a new migration is added here too.
 export const SCHEMA_MIGRATIONS = [
   InitExtensions1779408000000,
   InitSchema1783851505565,
@@ -30,7 +28,6 @@ export function createMockEntityManager(): DeepMocked<EntityManager> {
   return createMock<EntityManager>();
 }
 
-// * transaction(handler) runs the handler with the EntityManager; real commit/rollback is integration-tested.
 export function createMockDataSource(manager: EntityManager = createMockEntityManager()): DeepMocked<DataSource> {
   const dataSource = createMock<DataSource>();
 

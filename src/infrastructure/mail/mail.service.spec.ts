@@ -11,8 +11,7 @@ import type { MailSuppressionRepository } from './repositories/mail-suppression.
 import { ISendMailParams } from './schemas/send-mail.schema';
 
 vi.mock('fs/promises');
-// * env.config validates process.env on import and calls process.exit on failure, killing the Jest worker; mock it
-// * with the only fields MailService reads (the from header).
+// ! env.config calls process.exit on a validation failure, killing the worker — it must stay mocked.
 vi.mock('@config/env.config', () => ({
   env: { MAIL_FROM_NAME: 'App', MAIL_FROM: 'no-reply@app.test' },
 }));
@@ -102,7 +101,6 @@ describe('MailService', () => {
       readFileMock.mockResolvedValue('Hello {{name}}');
       await service.onModuleInit();
 
-      // * Defensive: the recipient-domain telemetry attribute falls back to '' for an address without '@'.
       await service.send({ payload: { ...payload, to: 'no-domain' } });
 
       expect(transport.send).toHaveBeenCalledWith(

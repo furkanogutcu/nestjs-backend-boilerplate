@@ -218,7 +218,6 @@ describe('IdempotencyService (integration)', () => {
       lockTtlSeconds: 30,
       responseTtlSeconds: 60,
       compute: async () => {
-        // * Simulate our lock expiring and another holder re-acquiring the slot under a different token.
         [slot] = await redis.keys('*');
         await redis.set(slot, foreign);
 
