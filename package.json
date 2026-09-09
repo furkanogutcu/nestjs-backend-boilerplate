@@ -1,6 +1,6 @@
 {
   "name": "nestjs-backend-boilerplate",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Production-grade NestJS backend boilerplate.",
   "author": "furkanogutcu <furkanogutcu.dev@gmail.com>",
   "private": true,

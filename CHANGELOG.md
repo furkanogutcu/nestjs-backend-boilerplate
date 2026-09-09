@@ -2,6 +2,38 @@
 
 All notable changes to this API are documented here. This project follows [Conventional Commits](https://www.conventionalcommits.org/) and [Semantic Versioning](https://semver.org/).
 
+# [2.0.0](https://github.com/furkanogutcu/nestjs-backend-boilerplate/compare/v1.0.0...v2.0.0) (2026-09-09)
+
+
+### Bug Fixes
+
+* run the maintenance clis from dist so they work in the production image ([473a4c5](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/473a4c5d64e33c24997b95d14310ef37b8f1dcab))
+
+
+### Documentation
+
+* rewrite the guides for the reshaped boilerplate ([23ea905](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/23ea9052def08aea438bfd42b07deab7906fe9dd))
+
+
+### Features
+
+* **admin:** add user, role and feature-flag management endpoints ([967eb2f](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/967eb2fbe1a5130b3742cc45227daf70c0a521fa))
+* **audit:** record identity events in an append-only audit log ([9811f31](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/9811f316782f4eda74e56e53f3bb6943de2d61ea))
+* **auth:** add role-based permissions, TOTP mfa and the admin bootstrap cli ([1b91ce0](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/1b91ce09860320fe19f91f6b42a1241c257fa838))
+* drain readiness before closing the server on shutdown ([ba8536f](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/ba8536f776b26d5f0d1b9911b1423aef16bf956a))
+* **observability:** scrub personal data from spans and guard env sample drift ([ed898fd](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/ed898fd4ea45d738d6062a5c50ce0c62d11b532d))
+* **posts:** add the worked example module and enforce response schemas ([138eb8d](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/138eb8dce4abc85331e5f8694331113aff8ac4a4))
+* **privacy:** add deferred account erasure and personal data export ([ca32440](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/ca32440fc13cca8c5289b394ab0c8eb0ed41ce67))
+* **storage:** add S3-compatible object storage with signed uploads ([b2efb18](https://github.com/furkanogutcu/nestjs-backend-boilerplate/commit/b2efb18c7c38da56126bc44cf376c1b993f61ff7))
+
+
+### BREAKING CHANGES
+
+* Kafka, the realtime WebSocket channel, the Prometheus scrape
+endpoint and Sentry were removed; TimescaleDB became plain Postgres and Jest
+became Vitest. Projects generated from an earlier version cannot upgrade in
+place.
+
 # 1.0.0 (2026-07-13)
 
 
