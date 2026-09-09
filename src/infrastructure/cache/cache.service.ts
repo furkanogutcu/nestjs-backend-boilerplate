@@ -79,6 +79,16 @@ export class CacheService {
     }
   }
 
+  // * Invalidation is best-effort like set(): a cache that cannot be reached must not fail the caller's
+  // * write. Callers that need the stale value gone for correctness read through the database instead.
+  async delete({ key }: { key: string }): Promise<void> {
+    try {
+      await this.client.del(this.buildKey(key));
+    } catch (error) {
+      this.logger.error(`Cache delete failed for "${key}": ${(error as Error).message}`);
+    }
+  }
+
   private buildKey(key: string): string {
     return CacheKey.join(keyPrefixes.cache, key);
   }

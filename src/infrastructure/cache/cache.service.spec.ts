@@ -110,4 +110,20 @@ describe('CacheService', () => {
       expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
+
+  describe('delete', () => {
+    it('removes the namespaced key', async () => {
+      await service.delete({ key: 'user-permissions:u1' });
+
+      expect(redis.del).toHaveBeenCalledWith(expect.stringContaining('user-permissions:u1'));
+    });
+
+    it('logs and does not throw when redis fails', async () => {
+      const errorLog = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+      redis.del.mockRejectedValue(new Error('redis down'));
+
+      await expect(service.delete({ key: 'k' })).resolves.toBeUndefined();
+      expect(errorLog).toHaveBeenCalled();
+    });
+  });
 });

@@ -11,12 +11,15 @@ import { RedisService } from '@infrastructure/redis/redis.service';
 import { AppBadRequestException } from '@shared/exceptions/bad-request.exception';
 import { AppConflictException } from '@shared/exceptions/conflict.exception';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
+import { AppForbiddenException } from '@shared/exceptions/forbidden.exception';
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 import { CacheKey } from '@shared/utils/cache-key.util';
 import { generateUuid } from '@shared/utils/uuid.util';
 
 import { EMAIL_VERIFICATION_TOKEN_BYTES, PASSWORD_RESET_TOKEN_BYTES } from '../constants/auth.constant';
 import { User } from '../entities/user.entity';
+import { MfaService } from '../mfa/services/mfa.service';
+import { UserRolesService } from '../rbac/services/user-roles.service';
 import { UsersRepository } from '../repositories/users.repository';
 import { AuthService } from '../services/auth.service';
 import { SessionService } from '../services/session.service';
@@ -42,6 +45,8 @@ export class PasswordService implements OnModuleInit {
     private readonly mailProducer: MailProducer,
     private readonly clock: ClockService,
     private readonly passwordStrengthService: PasswordStrengthService,
+    private readonly mfaService: MfaService,
+    private readonly userRolesService: UserRolesService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -89,10 +94,12 @@ export class PasswordService implements OnModuleInit {
     email,
     password,
     userAgent,
+    mfaCode,
   }: {
     email: string;
     password: string;
     userAgent?: string | null;
+    mfaCode?: string;
   }): Promise<ICredentialsResult> {
     const user = await this.usersRepository.findOne({ where: { email } });
 
@@ -107,9 +114,47 @@ export class PasswordService implements OnModuleInit {
       throw this.invalidCredentials();
     }
 
+    if (user.suspendedAt) {
+      throw new AppForbiddenException({
+        code: ExceptionCode.AccountSuspended,
+        message: 'This account is suspended.',
+      });
+    }
+
+    await this.enforceMfa({ userId: user.id, mfaCode });
+
     const tokens = await this.authService.issueSessionForUser({ userId: user.id, userAgent, linked: true });
 
     return { user, ...tokens };
+  }
+
+  // ! Runs only after the password has been proved, so an attacker cannot use the MFA responses to learn
+  // ! whether an account exists or which accounts are administrative.
+  private async enforceMfa({ userId, mfaCode }: { userId: string; mfaCode?: string }): Promise<void> {
+    const hasRole = await this.userRolesService.hasAnyRole({ userId });
+    const requirement = await this.mfaService.requirementFor({ userId, hasRole });
+
+    if (!requirement.required) {
+      return;
+    }
+
+    // ! An administrative account that never finished enrolment must not fall back to password-only: refuse
+    // ! the login instead, and let an operator re-issue it with `admin:create`.
+    if (!requirement.enrolled) {
+      throw new AppForbiddenException({
+        code: ExceptionCode.MfaEnrolmentRequired,
+        message: 'This account requires multi-factor authentication to be enrolled before signing in.',
+      });
+    }
+
+    if (!mfaCode) {
+      throw new AppUnauthorizedException({
+        code: ExceptionCode.MfaRequired,
+        message: 'A multi-factor authentication code is required.',
+      });
+    }
+
+    await this.mfaService.verify({ userId, code: mfaCode });
   }
 
   async verifyEmail({ token }: { token: string }): Promise<void> {

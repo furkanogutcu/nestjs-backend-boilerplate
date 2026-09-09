@@ -1,14 +1,14 @@
 import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 import { DataSource, EntityManager, ObjectLiteral, Repository } from 'typeorm';
 
+import { InitExtensions1779408000000 } from '@database/migrations/1779408000000-init-extensions';
 import { InitSchema1783851505565 } from '@database/migrations/1783851505565-init-schema';
+import { RbacAndMfa1788964220075 } from '@database/migrations/1788964220075-rbac-and-mfa';
 
-// * The schema migrations an integration test's throwaway Postgres runs, listed once here so a new migration is
-// * added in one place instead of in every spec. The extension migration (InitExtensions) is deliberately left
-// * out: it creates the timescaledb extension, which the plain postgres:16-alpine test container does not ship.
-// * Once the schema first needs a hypertable the test container moves to a timescaledb image and this list can
-// * become the migration-directory glob the app data source already uses.
-export const SCHEMA_MIGRATIONS = [InitSchema1783851505565];
+// * Every migration an integration test's throwaway Postgres runs, listed once here so a new migration is added
+// * in one place instead of in every spec. Keep this in the same order as the migrations directory — running the
+// * real extension migration here is what proves the schema boots on a stock Postgres image.
+export const SCHEMA_MIGRATIONS = [InitExtensions1779408000000, InitSchema1783851505565, RbacAndMfa1788964220075];
 
 export function createMockRepository<T extends ObjectLiteral = ObjectLiteral>(): DeepMocked<Repository<T>> {
   return createMock<Repository<T>>();

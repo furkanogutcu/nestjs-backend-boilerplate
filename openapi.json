@@ -4190,13 +4190,19 @@
                               "type": "boolean",
                               "description": "Whether the user is an unlinked guest",
                               "example": false
+                            },
+                            "must_change_password": {
+                              "type": "boolean",
+                              "description": "Set when the account was issued a temporary password; the client must send the user to a change-password flow.",
+                              "example": false
                             }
                           },
                           "required": [
                             "id",
                             "email",
                             "is_email_verified",
-                            "is_anonymous"
+                            "is_anonymous",
+                            "must_change_password"
                           ],
                           "additionalProperties": false,
                           "description": "Authenticated user summary"
@@ -4540,13 +4546,19 @@
                               "type": "boolean",
                               "description": "Whether the user is an unlinked guest",
                               "example": false
+                            },
+                            "must_change_password": {
+                              "type": "boolean",
+                              "description": "Set when the account was issued a temporary password; the client must send the user to a change-password flow.",
+                              "example": false
                             }
                           },
                           "required": [
                             "id",
                             "email",
                             "is_email_verified",
-                            "is_anonymous"
+                            "is_anonymous",
+                            "must_change_password"
                           ],
                           "additionalProperties": false,
                           "description": "Authenticated user summary"
@@ -5176,6 +5188,756 @@
           "Auth"
         ]
       }
+    },
+    "/api/v1/auth/mfa/enrol": {
+      "post": {
+        "description": "Generates a TOTP secret for the current user and returns it with an otpauth:// URI. Nothing is enforced until the code is confirmed.",
+        "operationId": "MfaController_enrol_api/v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Secret and provisioning URI, shown once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "Base32 TOTP secret. Shown once — the client must let the user store it before confirming.",
+                          "example": "JBSWY3DPEHPK3PXP"
+                        },
+                        "otpauth_uri": {
+                          "type": "string",
+                          "description": "otpauth:// URI to render as a QR code for an authenticator app.",
+                          "example": "otpauth://totp/App:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=App"
+                        }
+                      },
+                      "required": [
+                        "secret",
+                        "otpauth_uri"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required or has failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthorized"
+                          ],
+                          "example": "unauthorized"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Authentication is required"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The request conflicts with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "some_fields_already_exists",
+                            "conflict"
+                          ],
+                          "example": "some_fields_already_exists"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "A resource with these fields already exists"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "already_exists",
+                              "path": "name",
+                              "issue": "Already exists"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Begin MFA enrolment",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/confirm": {
+      "post": {
+        "description": "Verifies the first TOTP code, enables MFA and returns the single-use recovery codes.",
+        "operationId": "MfaController_confirm_api/v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recovery codes, returned only here.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "recovery_codes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Single-use recovery codes. Returned only once, at confirmation; store them now.",
+                          "example": [
+                            "3f2a1b4c5d",
+                            "9e8d7c6b5a"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "recovery_codes"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the request was malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "validation_failed",
+                            "bad_request"
+                          ],
+                          "example": "validation_failed"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Validation failed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "missing_field",
+                              "path": "name",
+                              "issue": "Required"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required or has failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unauthorized"
+                          ],
+                          "example": "unauthorized"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Authentication is required"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The request conflicts with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "some_fields_already_exists",
+                            "conflict"
+                          ],
+                          "example": "some_fields_already_exists"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "A resource with these fields already exists"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        },
+                        "details": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "already_exists",
+                                  "invalid",
+                                  "missing_field",
+                                  "unrecognized"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "example": "name"
+                              },
+                              "issue": {
+                                "type": "string",
+                                "example": "Required"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "path",
+                              "issue"
+                            ]
+                          },
+                          "example": [
+                            {
+                              "type": "already_exists",
+                              "path": "name",
+                              "issue": "Already exists"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request was well-formed but semantically invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unprocessable_entity"
+                          ],
+                          "example": "unprocessable_entity"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "The request could not be processed"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limit"
+                          ],
+                          "example": "rate_limit"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Too many requests, please try again later"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "unexpected_error"
+                          ],
+                          "example": "unexpected_error"
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "An unexpected error occurred"
+                        },
+                        "requestId": {
+                          "type": "string"
+                        },
+                        "traceId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm MFA enrolment",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa": {
+      "delete": {
+        "description": "Turns MFA off. Requires a current code: a stolen session must not be able to strip the second factor.",
+        "operationId": "MfaController_disable_api/v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Disable MFA",
+        "tags": [
+          "Auth"
+        ]
+      }
     }
   },
   "info": {
@@ -5502,6 +6264,12 @@
             "maxLength": 128,
             "description": "Account password (8-128 characters)",
             "example": "correct-horse-battery-staple"
+          },
+          "mfa_code": {
+            "description": "TOTP or recovery code, when MFA is enabled.",
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 32
           }
         },
         "required": [
@@ -5581,6 +6349,22 @@
         "required": [
           "token",
           "password"
+        ],
+        "additionalProperties": false
+      },
+      "MfaCodeRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 32,
+            "description": "TOTP code from the authenticator app, or an unused recovery code.",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "code"
         ],
         "additionalProperties": false
       }

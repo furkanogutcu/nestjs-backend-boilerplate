@@ -4,6 +4,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { InfrastructureModule } from '@infrastructure/infrastructure.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { AuthGuard } from '@modules/auth/guards/auth.guard';
+import { PermissionGuard } from '@modules/auth/rbac/guards/permission.guard';
+import { RbacModule } from '@modules/auth/rbac/rbac.module';
 import { GlobalExceptionFilter } from '@shared/exceptions/filters/global.filter';
 import { IpRateLimiterGuard } from '@shared/guards/ip-rate-limit.guard';
 import { RequireHttpsGuard } from '@shared/guards/require-https.guard';
@@ -15,7 +17,7 @@ import { ResponseInterceptor } from '@shared/interceptors/response.interceptor';
 import { AppZodValidationPipe } from '@shared/pipes/app-zod-validation.pipe';
 
 @Module({
-  imports: [InfrastructureModule, AuthModule],
+  imports: [InfrastructureModule, AuthModule, RbacModule],
   providers: [
     { provide: APP_PIPE, useClass: AppZodValidationPipe },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
@@ -26,6 +28,8 @@ import { AppZodValidationPipe } from '@shared/pipes/app-zod-validation.pipe';
     { provide: APP_GUARD, useClass: RequireHttpsGuard },
     { provide: APP_GUARD, useClass: IpRateLimiterGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
+    // * After AuthGuard: permission checks need request.user to be resolved first.
+    { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_GUARD, useClass: SubjectRateLimiterGuard },
   ],
 })

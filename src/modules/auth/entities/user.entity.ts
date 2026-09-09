@@ -26,6 +26,16 @@ export class User {
   @Column({ type: 'boolean', default: true })
   isAnonymous!: boolean;
 
+  // * Set by `admin:create` when an operator hands over an account with a temporary password: the holder must
+  // * change it before anything else is allowed. Cleared on the first successful change.
+  @Column({ type: 'boolean', default: false })
+  mustChangePassword!: boolean;
+
+  // * Suspension is an administrative state, distinct from deletion: the row stays, sessions are revoked, and
+  // * authentication is refused until it is lifted.
+  @Column({ type: 'timestamptz', nullable: true })
+  suspendedAt!: Date | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   lastSeenAt!: Date | null;
 

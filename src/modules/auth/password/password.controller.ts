@@ -70,6 +70,7 @@ export class PasswordController {
       email: body.email,
       password: body.password,
       userAgent: client.userAgent,
+      mfaCode: body.mfa_code,
     });
 
     return this.toCredentialsResponse(result);
@@ -138,6 +139,7 @@ export class PasswordController {
         email: result.user.email,
         is_email_verified: result.user.emailVerifiedAt !== null,
         is_anonymous: result.user.isAnonymous,
+        must_change_password: result.user.mustChangePassword,
       },
     };
   }

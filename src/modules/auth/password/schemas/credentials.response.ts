@@ -12,6 +12,12 @@ export const credentialsResponseSchema = tokenPairResponseSchema.extend({
         .describe('Whether the email has been verified via the emailed link')
         .meta({ example: false }),
       is_anonymous: z.boolean().describe('Whether the user is an unlinked guest').meta({ example: false }),
+      must_change_password: z
+        .boolean()
+        .describe(
+          'Set when the account was issued a temporary password; the client must send the user to a change-password flow.',
+        )
+        .meta({ example: false }),
     })
     .describe('Authenticated user summary'),
 });

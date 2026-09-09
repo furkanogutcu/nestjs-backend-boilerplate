@@ -26,5 +26,10 @@
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true
+  },
+  "ts-node": {
+    // ! Loads the ambient declarations (src/shared/declarations) that augment Express' Request; without this
+    // ! every CLI script fails to compile on request.user / request.session.
+    "files": true
   }
 }

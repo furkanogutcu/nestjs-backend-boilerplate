@@ -67,7 +67,8 @@
     "docs:generate": "ts-node --transpile-only -r tsconfig-paths/register ./src/infrastructure/docs/scripts/generate-openapi.script.ts",
     "postman:generate": "pnpm docs:generate && portman -l openapi.json -o postman/app-api.postman_collection.json -c postman/portman-config.json -s postman/openapi-to-postman.json",
     "obs:up": "docker compose -f docker-compose.observability.yml up -d",
-    "obs:down": "docker compose -f docker-compose.observability.yml down"
+    "obs:down": "docker compose -f docker-compose.observability.yml down",
+    "admin:create": "ts-node -r tsconfig-paths/register ./src/modules/auth/rbac/scripts/create-admin.script.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.5",
@@ -110,6 +111,7 @@
     "luxon": "^3.7.2",
     "nestjs-pino": "^5.1.0",
     "nestjs-zod": "^5.5.0",
+    "otpauth": "^9.5.2",
     "pg": "^8.23.0",
     "pg-connection-string": "^2.14.0",
     "pino-http": "^11.0.0",

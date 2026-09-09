@@ -13,6 +13,8 @@ import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 
 import { User } from '../entities/user.entity';
+import { MfaService } from '../mfa/services/mfa.service';
+import { UserRolesService } from '../rbac/services/user-roles.service';
 import { UsersRepository } from '../repositories/users.repository';
 import { AuthService } from '../services/auth.service';
 import { SessionService } from '../services/session.service';
@@ -31,6 +33,8 @@ describe('PasswordService', () => {
   let mailProducer: DeepMocked<MailProducer>;
   let clock: DeepMocked<ClockService>;
   let passwordStrengthService: DeepMocked<PasswordStrengthService>;
+  let mfaService: DeepMocked<MfaService>;
+  let userRolesService: DeepMocked<UserRolesService>;
   let redisClient: { set: Mock; getdel: Mock };
   let service: PasswordService;
 
@@ -45,6 +49,10 @@ describe('PasswordService', () => {
     mailProducer = createMock<MailProducer>();
     clock = createMock<ClockService>();
     passwordStrengthService = createMock<PasswordStrengthService>();
+    mfaService = createMock<MfaService>();
+    userRolesService = createMock<UserRolesService>();
+    userRolesService.hasAnyRole.mockResolvedValue(false);
+    mfaService.requirementFor.mockResolvedValue({ enrolled: false, required: false });
     redisClient = { set: vi.fn().mockResolvedValue('OK'), getdel: vi.fn() };
     const redisService = createMock<RedisService>();
     redisService.getClient.mockReturnValue(redisClient as never);
@@ -64,6 +72,8 @@ describe('PasswordService', () => {
       mailProducer,
       clock,
       passwordStrengthService,
+      mfaService,
+      userRolesService,
     );
     await service.onModuleInit();
   });
@@ -135,6 +145,67 @@ describe('PasswordService', () => {
   });
 
   describe('login', () => {
+    const adminUser = { id: 'u1', passwordHash: 'stored', isAnonymous: false } as User;
+
+    it('refuses a suspended account even with the right password', async () => {
+      usersRepository.findOne.mockResolvedValue({ ...adminUser, suspendedAt: new Date() });
+
+      await expect(service.login({ email: 'a@example.com', password: 'super-secret' })).rejects.toMatchObject({
+        code: ExceptionCode.AccountSuspended,
+      });
+      expect(authService.issueSessionForUser).not.toHaveBeenCalled();
+    });
+
+    it('demands a code when MFA is enrolled and none was supplied', async () => {
+      usersRepository.findOne.mockResolvedValue(adminUser);
+      mfaService.requirementFor.mockResolvedValue({ enrolled: true, required: true });
+
+      await expect(service.login({ email: 'a@example.com', password: 'super-secret' })).rejects.toMatchObject({
+        code: ExceptionCode.MfaRequired,
+      });
+      expect(authService.issueSessionForUser).not.toHaveBeenCalled();
+    });
+
+    it('verifies the supplied code and issues a session', async () => {
+      usersRepository.findOne.mockResolvedValue(adminUser);
+      mfaService.requirementFor.mockResolvedValue({ enrolled: true, required: true });
+
+      await expect(
+        service.login({ email: 'a@example.com', password: 'super-secret', mfaCode: '123456' }),
+      ).resolves.toMatchObject({ accessToken: 'access' });
+      expect(mfaService.verify).toHaveBeenCalledWith({ userId: 'u1', code: '123456' });
+    });
+
+    it('propagates an invalid code instead of issuing a session', async () => {
+      usersRepository.findOne.mockResolvedValue(adminUser);
+      mfaService.requirementFor.mockResolvedValue({ enrolled: true, required: true });
+      mfaService.verify.mockRejectedValue(new Error('invalid'));
+
+      await expect(
+        service.login({ email: 'a@example.com', password: 'super-secret', mfaCode: '000000' }),
+      ).rejects.toThrow('invalid');
+      expect(authService.issueSessionForUser).not.toHaveBeenCalled();
+    });
+
+    it('refuses an administrative account that never finished enrolment', async () => {
+      usersRepository.findOne.mockResolvedValue(adminUser);
+      mfaService.requirementFor.mockResolvedValue({ enrolled: false, required: true });
+
+      await expect(service.login({ email: 'a@example.com', password: 'super-secret' })).rejects.toMatchObject({
+        code: ExceptionCode.MfaEnrolmentRequired,
+      });
+    });
+
+    it('checks MFA only after the password is proved', async () => {
+      usersRepository.findOne.mockResolvedValue(adminUser);
+      mockedVerify.mockResolvedValue(false);
+
+      await expect(service.login({ email: 'a@example.com', password: 'wrong' })).rejects.toMatchObject({
+        code: ExceptionCode.InvalidCredentials,
+      });
+      expect(mfaService.requirementFor).not.toHaveBeenCalled();
+    });
+
     it('issues a session when the password matches', async () => {
       usersRepository.findOne.mockResolvedValue({ id: 'u1', passwordHash: 'stored', isAnonymous: false } as User);
       mockedVerify.mockResolvedValue(true);
