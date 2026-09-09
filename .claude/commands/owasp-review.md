@@ -4,7 +4,7 @@ argument-hint: '[optional: focus area — e.g. auth, rate-limit, config]'
 allowed-tools: Read, Grep, Glob, Bash(pnpm audit:*), Bash(pnpm outdated:*), Bash(git diff:*), Bash(git log:*)
 ---
 
-Act as a senior **Cybersecurity Expert** and **DevSecOps engineer**. This repository is a **NestJS 11 + TypeScript RESTful backend API** serving web and mobile clients (PostgreSQL/TimescaleDB · Redis · Kafka · BullMQ · TypeORM · Zod · pino). Perform a comprehensive **security review**.
+Act as a senior **Cybersecurity Expert** and **DevSecOps engineer**. This repository is a **NestJS 11 + TypeScript RESTful backend API** serving web and mobile clients (PostgreSQL · Redis · BullMQ · TypeORM · Zod · pino · S3-compatible storage). Perform a comprehensive **security review**.
 
 This is a read-only **audit**: do not modify code, only report. Present remediation examples as suggestions; if the user approves, you apply them in a separate phase (CLAUDE.md phase/approval principle).
 

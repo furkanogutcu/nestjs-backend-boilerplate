@@ -1,13 +1,13 @@
 # NestJS Backend Boilerplate — AI Agent Guide
 
 Production-grade NestJS 11 + TypeScript **backend** boilerplate.
-Stack: PostgreSQL/TimescaleDB · Redis · Kafka · BullMQ · TypeORM · Zod (nestjs-zod) · pino · OpenTelemetry.
+Stack: PostgreSQL · Redis · BullMQ · TypeORM · Zod (nestjs-zod) · pino · OpenTelemetry · S3-compatible storage.
 
 This file is a **signpost**; the deep detail lives in the linked docs and is not repeated here:
 
-- **Where code goes / how:** [`ARCHITECTURE.md`](./ARCHITECTURE.md) — layers, the "what goes where" table, domain-module template, naming, API documentation, DB, Kafka. **Read it before adding code.**
+- **Where code goes / how:** [`ARCHITECTURE.md`](./ARCHITECTURE.md) — layers, the "what goes where" table, domain-module template, naming, API documentation, DB, authorisation, audit, storage. **Read it before adding code.**
 - **Writing tests:** the `nestjs-testing` skill (`.claude/skills/nestjs-testing/`).
-- **Client integration:** [`docs/client-integration/`](./docs/client-integration/) (auth, realtime).
+- **Client integration:** [`docs/client-integration/`](./docs/client-integration/) (auth, the posts example).
 - **Contributing/commits:** [`CONTRIBUTING.md`](./CONTRIBUTING.md). **Operations:** [`docs/runbooks/`](./docs/runbooks/).
 
 ## Working principles

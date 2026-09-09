@@ -6,7 +6,7 @@ lives in [`ARCHITECTURE.md`](./ARCHITECTURE.md) and [`AGENTS.md`](./AGENTS.md) �
 ## Requirements
 
 - **pnpm** (package manager) and **Node ≥22**.
-- **Docker** for integration/e2e tests (Testcontainers spins up PostgreSQL/Redis/Kafka).
+- **Docker** for integration/e2e tests (Testcontainers spins up PostgreSQL, Redis and MinIO).
 - For setup and local execution → [`README.md`](./README.md) "Quick start".
 
 ## Development workflow

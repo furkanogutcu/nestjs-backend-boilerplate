@@ -5,15 +5,15 @@ nothing to disaster tolerance. This document is the starting point for when that
 
 ## When to add a replica
 
-| Trigger                               | Required replica type                                                                                             |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Read load is saturating the primary   | Hot standby (read-only queries)                                                                                   |
-| Cross-region disaster recovery needed | Streaming replica on a second VPS                                                                                 |
-| Zero-downtime PG/Timescale upgrade    | Replica + failover                                                                                                |
-| Real-time analytics / CDC to Kafka    | **Not a replica** — use Debezium against the primary's logical replication slot (`wal_level=logical` already set) |
+| Trigger                                   | Required replica type                                                                                             |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Read load is saturating the primary       | Hot standby (read-only queries)                                                                                   |
+| Cross-region disaster recovery needed     | Streaming replica on a second VPS                                                                                 |
+| Zero-downtime PG/Postgres upgrade         | Replica + failover                                                                                                |
+| Real-time analytics / change data capture | **Not a replica** — use Debezium against the primary's logical replication slot (`wal_level=logical` already set) |
 
 If the use case is real-time analytics, **do not add a streaming replica first** — use a
-Debezium connector that reads the primary's logical replication slot and emits events to Kafka.
+Debezium connector that reads the primary's logical replication slot.
 Replicas are for read scaling and HA.
 
 ## What is already in place to make this easier
@@ -67,7 +67,7 @@ Not automatic today. Options when the time comes:
   config to point at it. An acceptable RTO for a side project, but painful at scale.
 - **patroni** + etcd / Consul: the industry standard for automatic failover. Requires
   rethinking the deployment model (Dokploy's compose model resists it).
-- **Managed Postgres** (Timescale Cloud, Aiven): get built-in HA in exchange for money/control.
+- **Managed Postgres** (Postgres Cloud, Aiven): get built-in HA in exchange for money/control.
 
 Avoid building failover automation before experiencing at least one real failure mode — the
 design will be wrong.

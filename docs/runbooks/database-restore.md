@@ -26,14 +26,14 @@ traffic is switched over only after the restore is verified.
 ### 1. Provision a new Postgres container with the same image
 
 Either a new compose stack on a new VPS, or `docker compose` in a new directory on the same
-host, with a fresh `timescaledb_data` volume:
+host, with a fresh `postgres_data` volume:
 
 ```bash
 # Prevent the new container from auto-starting so the restore can run against an empty data dir.
-docker compose -f docker-compose.production.yml up -d --no-start timescaledb pgbackrest
+docker compose -f docker-compose.production.yml up -d --no-start postgres pgbackrest
 
 # Make sure the data volume is empty (the restore requires an empty PGDATA).
-docker compose -f docker-compose.production.yml run --rm --entrypoint='' timescaledb \
+docker compose -f docker-compose.production.yml run --rm --entrypoint='' postgres \
   sh -c 'rm -rf /var/lib/postgresql/data/* /var/lib/postgresql/data/.[!.]*'
 ```
 
@@ -72,8 +72,8 @@ docker compose exec pgbackrest \
 ### 4. Start Postgres and wait for it to replay WAL up to the target
 
 ```bash
-docker compose up -d timescaledb
-docker compose logs -f timescaledb
+docker compose up -d postgres
+docker compose logs -f postgres
 ```
 
 Watch for the `recovery stopping before commit of transaction ...` and `database system is ready
@@ -82,10 +82,10 @@ to accept connections` messages. These signal that recovery is complete.
 ### 5. Verify
 
 ```bash
-docker compose exec timescaledb psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "
+docker compose exec postgres psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "
   SELECT now() AT TIME ZONE 'UTC' AS now_utc,
          pg_last_wal_replay_lsn(),
-         (SELECT count(*) FROM pg_extension WHERE extname='timescaledb') AS timescale_ok;
+         (SELECT count(*) FROM pg_extension WHERE extname='pg_stat_statements') AS extensions_ok;
 "
 ```
 
@@ -136,4 +136,4 @@ Log the drill in a permanent place (issue tracker, team doc).
 | `unable to access bucket: 403`               | R2 token revoked or rotated           | create a new R2 token, update env, redeploy                  |
 | `archive-get could not find WAL ...`         | retention pruned the WAL you need     | restore to an earlier time within retention                  |
 | Postgres will not start: timeline conflict   | restored over a half-recovered PGDATA | delete PGDATA, restore again with `--delta`                  |
-| `pg_isready` healthcheck fails after restore | recovery is still in progress         | `docker compose logs timescaledb` and wait                   |
+| `pg_isready` healthcheck fails after restore | recovery is still in progress         | `docker compose logs postgres` and wait                      |

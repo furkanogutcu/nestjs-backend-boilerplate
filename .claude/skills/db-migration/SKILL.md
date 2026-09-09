@@ -2,27 +2,27 @@
 name: db-migration
 description: >-
   Use when changing the database schema in this repo — a new table/column/index, a TypeORM entity change,
-  TimescaleDB hypertable/retention/compression, an extension, or a data backfill. Covers the generate
+  an extension, a partial index, or a data backfill. Covers the generate
   (entity diff) vs create (hand-written DDL) distinction, MIGRATION_DATABASE_URL routing, SnakeNamingStrategy,
-  and the TimescaleDB convention (NOT a hypertable by default). Migrations are not hand-written to skip
+  and the append-only grant convention for audit tables. Migrations are not hand-written to skip
   generate; an applied migration is not edited.
 ---
 
 # DB migrations
 
-TypeORM + PostgreSQL/TimescaleDB. Migrations live under `src/database/migrations/`, in raw SQL
+TypeORM + PostgreSQL. Migrations live under `src/database/migrations/`, in raw SQL
 (`queryRunner.query`). A schema change is **always** made with a migration — no `synchronize`.
 
-> Context: `ARCHITECTURE.md` "Database infrastructure" (connection routing, TimescaleDB,
+> Context: `ARCHITECTURE.md` "Database infrastructure" (connection routing,
 > time-series convention). Connection: `src/database/typeorm.data-source.ts`.
 
 ## generate or create?
 
-| Situation                                                                                                                | Command                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| You added/changed an **entity** (table/column/index derivable from the entity)                                           | `pnpm db:migration:generate <name>`                                     |
-| DDL **not derivable** from an entity: TimescaleDB hypertable/policy, extension, partial/expression index, view, backfill | `pnpm db:migration:create <name>` (empty migration → write SQL by hand) |
-| Apply / revert migrations                                                                                                | `pnpm db:migration:run` · `pnpm db:migration:revert`                    |
+| Situation                                                                                               | Command                                                                 |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| You added/changed an **entity** (table/column/index derivable from the entity)                          | `pnpm db:migration:generate <name>`                                     |
+| DDL **not derivable** from an entity: extension, GRANT/REVOKE, partial/expression index, view, backfill | `pnpm db:migration:create <name>` (empty migration → write SQL by hand) |
+| Apply / revert migrations                                                                               | `pnpm db:migration:run` · `pnpm db:migration:revert`                    |
 
 - **`generate`** diffs your entities against the live schema → produces SQL. **Do not hand-write a migration and
   skip generate on an entity change** (AGENTS.md "Anti-patterns"). The DB must be up; the entity must be registered in a module.
@@ -39,22 +39,15 @@ that is defined in the Zod response/request schemas.)
 ## Connection routing (keep in mind)
 
 - App runtime → `DATABASE_URL` (PgBouncer :6432). **Migrations → `MIGRATION_DATABASE_URL`** (direct
-  Timescale :5432, bypassing PgBouncer). If `MIGRATION_DATABASE_URL` is absent, it falls back to `DATABASE_URL` (dev/CI).
+  Postgres :5432, bypassing PgBouncer). If `MIGRATION_DATABASE_URL` is absent, it falls back to `DATABASE_URL` (dev/CI).
 - Reason: DDL transactions and TypeORM's advisory-lock migration runner need a dedicated session.
 
-## TimescaleDB hypertable convention
-
-**No table is a hypertable by default.** When a feature needs time-series storage
 (event log, audit trail, metrics/telemetry):
 
 1. Define the entity normally in its owning module (`modules/<x>/entities/`).
-2. **In the same migration**, after `CREATE TABLE`, call `SELECT create_hypertable(...)`.
-3. As volume grows, add `add_retention_policy` / `add_compression_policy` in later migrations.
-
-Do **not** convert OLTP tables (users, sessions, orders) into hypertables — hypertables are append-mostly.
+2. As volume grows, add `add_retention_policy` / `add_compression_policy` in later migrations.
 
 ```ts
-// a hypertable migration produced with create (hand-written)
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateEventLogs1781000000000 implements MigrationInterface {
@@ -68,7 +61,6 @@ export class CreateEventLogs1781000000000 implements MigrationInterface {
         PRIMARY KEY ("id", "occurred_at")
       );
     `);
-    await queryRunner.query(`SELECT create_hypertable('event_logs', 'occurred_at');`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

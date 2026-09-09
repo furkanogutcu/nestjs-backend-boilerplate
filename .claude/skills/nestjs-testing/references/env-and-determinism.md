@@ -11,7 +11,7 @@ export const env = deepFreeze(parsed.data);
 ```
 
 This code runs **at import time**. `RedisService`, `SensitiveService`, `MailService`,
-`BaseKafkaService`, the logger module, the global filter, etc. all transitively import `env` — so the
+The logger module, the global filter, the storage service, etc. all transitively import `env` — so the
 moment a spec imports one of them, env validation runs. If there is no valid `process.env`, the worker
 calls `process.exit(1)` and the suite dies with a confusing error.
 
@@ -23,7 +23,7 @@ loads any source) and fills in a syntactically valid env (`NODE_ENV=test`, postg
 
 - To test the validation rules, import **`ENVSchema` from `@config/env.schema`** and call
   `safeParse` — never import `env.config`. See `src/config/env.schema.spec.ts`.
-- To change a single value for a unit (e.g. `SENTRY_DSN`, `KAFKA_SASL_MECHANISM`), mock the module:
+- To change a single value for a unit (e.g. `S3_ENDPOINT`, `MAIL_DRIVER`), mock the module:
 
   ```ts
   vi.mock('@config/env.config', () => ({ env: { SENTRY_DSN: undefined /* ... */ } }));
@@ -31,7 +31,7 @@ loads any source) and fills in a syntactically valid env (`NODE_ENV=test`, postg
   (env as { SENTRY_DSN?: string }).SENTRY_DSN = 'https://...'; // change per test, reset in beforeEach
   ```
 
-  Examples: `global.filter.spec.ts`, `base-kafka-service.abstract.spec.ts`.
+  Examples: `global.filter.spec.ts`, `storage.service.spec.ts` (which also shows `vi.hoisted`).
 
 ## `test/setup.ts` (`setupFilesAfterEnv`)
 

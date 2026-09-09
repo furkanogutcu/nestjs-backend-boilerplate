@@ -1,7 +1,7 @@
 # Architecture
 
 This document has three parts: **(1) Conventions** — where and how code is written (consulted on every
-change); **(2) Infrastructure design** — how and why the database and Kafka backbone are built;
+change); **(2) Infrastructure design** — how and why the database, authorisation, audit and storage layers are built;
 **(3) Process** — release and versioning.
 
 ## Table of contents
@@ -14,9 +14,11 @@ change); **(2) Infrastructure design** — how and why the database and Kafka ba
 
 **Part 2 — Infrastructure design**
 
-- Database infrastructure — TimescaleDB, connection routing, backups/PITR, WAL/replica, observability, time-series convention
-- Kafka messaging — event envelope, topic provisioning, transactional outbox, idempotent consumer, retry+DLQ, DLQ replay, observability, schema evolution, RF=1 risk
-- Realtime (WebSocket) channel — thin-event doctrine, driver selection, publisher port, Kafka→client fanout, handshake auth, Redis adapter, new event recipe
+- Database infrastructure — Postgres, connection routing, backups/PITR, WAL/replica, observability
+- Authorisation — permissions as code, roles as data, the permission cache
+- Audit log — what is recorded, the append-only grant, retention
+- Object storage — signed uploads, public/private prefixes
+- Graceful shutdown — the drain sequence
 
 **Part 3 — Process**
 
@@ -45,8 +47,8 @@ src/
 │   ├─ constants/    # cross-cutting constants
 │   └─ schemas/      # cross-cutting Zod schemas (pagination, search, order-by)
 ├─ infrastructure/    # DI modules wrapping technical capabilities / external systems
-│   ├─ database/  redis/  cache/  queues/  kafka/  mail/  realtime/
-│   ├─ logger/  sentry/  prometheus/  security/  rate-limit/  health/  sensitive/
+│   ├─ database/  redis/  cache/  queues/  mail/  storage/  audit/  feature-flags/
+│   ├─ logger/  observability/  security/  rate-limit/  health/  sensitive/  lifecycle/
 │   └─ infrastructure.module.ts   # aggregates and re-exports the infra modules
 ├─ modules/           # ONLY business / domain modules (users, auth, ...)
 └─ database/          # datasource, migration, strategy, script, repo extension
@@ -60,7 +62,7 @@ src/
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------ |
 | `config/`         | Plain config objects, env schema/validation                                                                            | No                   | nothing application-specific         |
 | `shared/`         | Decorators, pipes, filters, guards, interceptors, exceptions, utils, response wrappers, shared enums/constants/schemas | Mostly none          | `config`                             |
-| `infrastructure/` | Technical capability modules (db, redis, cache, queues, kafka, mail, realtime, observability, security…)               | Yes                  | `config`, `shared`                   |
+| `infrastructure/` | Technical capability modules (db, redis, cache, queues, mail, storage, audit, feature flags, observability, security…) | Yes                  | `config`, `shared`                   |
 | `modules/`        | Domain features                                                                                                        | Yes                  | `config`, `shared`, `infrastructure` |
 | `database/`       | TypeORM datasource, migrations, strategy, repo extension                                                               | No (open to the CLI) | `config`                             |
 
@@ -91,7 +93,6 @@ modules/users/
 │   └─ user.response.ts
 ├─ enums/  constants/  interfaces/    # domain-specific (when needed)
 ├─ jobs/                      # BullMQ producers/processors for this domain
-├─ events/                    # Kafka producers/consumers for this domain
 ├─ subscribers/               # TypeORM subscribers for this domain's entities
 └─ profile/                   # sub-feature (same module)
     ├─ profile.controller.ts
@@ -185,25 +186,25 @@ mix-up arises structurally from exactly that, and the rule prevents precisely th
 | Domain enum / constant / interface                                                                       | `modules/<x>/{enums,constants,interfaces}/`                                                      |
 | Concrete BullMQ producer + processor                                                                     | the owner's `jobs/` folder — `modules/<x>/jobs/` or `infrastructure/<cap>/jobs/`                 |
 | Queue name registration                                                                                  | `shared/enums/queue.enum.ts` (`AppQueue`)                                                        |
-| A domain's concrete Kafka event                                                                          | `modules/<x>/events/`                                                                            |
-| Realtime push to the client (WS invalidation/kick envelope + Kafka→client fanout)                        | `infrastructure/realtime/` (see "Realtime (WebSocket) channel")                                  |
+| A permission a route enforces                                                                            | `modules/auth/rbac/permission.enum.ts` (then grant it to a role from the admin API)              |
+| An auditable action                                                                                      | `infrastructure/audit/audit-action.enum.ts`                                                      |
 | Reusable building block (decorator, pipe, filter, guard, interceptor, exception, util, response wrapper) | `shared/`                                                                                        |
 | Cross-cutting Zod schema (pagination, search, order-by)                                                  | `shared/schemas/`                                                                                |
 | Cross-cutting enum / constant (used by ≥2 layers/modules)                                                | `shared/enums/`, `shared/constants/`                                                             |
-| Enum / constant specific to a single infra capability (e.g. Kafka topics, consumer groups)               | that capability's module — `infrastructure/<cap>/{enums,constants}/`                             |
-| Technical capability module + base classes (queue/kafka producers, consumers, abstracts)                 | `infrastructure/`                                                                                |
+| Enum / constant specific to a single infra capability (e.g. storage prefixes, audit actions)             | that capability's module — `infrastructure/<cap>/{enums,constants}/`                             |
+| Technical capability module + base classes (queue producers, scheduled processors, abstracts)            | `infrastructure/`                                                                                |
 | Static config / env                                                                                      | `config/`                                                                                        |
 | Datasource, migration, strategy, repo extension                                                          | `database/`                                                                                      |
 | Domain/capability ops script (+ DI bootstrap context)                                                    | the owner's `scripts/` folder — `modules/<x>/scripts/` or `infrastructure/<cap>/scripts/`        |
 
-Practical rule: the **mechanism** (mail sender, queue registration, kafka client, base producer/consumer)
-lives under `infrastructure/`; its **domain usage** (which job, which event, which template) lives inside
+Practical rule: the **mechanism** (mail sender, queue registration, storage client, base producer/processor)
+lives under `infrastructure/`; its **domain usage** (which job, which permission, which template) lives inside
 the relevant domain module.
 
 Rule for enum/constant location: those that are genuinely **cross-cutting** (consumed by ≥2 layers or ≥2
 modules) stay in `shared/`; types used by **only a single infra capability** live in that capability's
-module (module cohesion increases, `shared/` does not bloat). E.g. `KafkaTopic` and consumer-group
-constants are under `infrastructure/kafka/{enums,constants}/` — only Kafka uses them. Counter-example:
+module (module cohesion increases, `shared/` does not bloat). E.g. `StorageVisibility` and the storage key
+prefixes live under `infrastructure/storage/` — only storage uses them. Counter-example:
 `AppQueue` (`shared/enums/queue.enum.ts`) stays in `shared/` because it is registered by both infra and
 domain modules (a single queue-name registry).
 
@@ -211,7 +212,7 @@ domain modules (a single queue-name registry).
 
 - The queue **framework** lives under `infrastructure/queues/`: the Bull connection, `BaseQueueProducer`,
   and two scheduled processor bases — `BaseScheduledProcessor` (with a cron pattern; e.g. prune jobs) and
-  `BaseIntervalProcessor` (with a fixed `intervalMs` tick; e.g. the outbox relay).
+  `BaseIntervalProcessor` (with a fixed `intervalMs` tick).
 - Queue **names** are defined in a single place, `shared/enums/queue.enum.ts` (`AppQueue`) — a single
   registration, ensuring no collisions in the global Redis namespace and that every queue is discoverable.
 - A queue's concrete **producer + processor live together in the `jobs/` folder of that queue's owner**;
@@ -295,7 +296,7 @@ codebase even though lint does not enforce them. Both apply to new code.
 - **A 2+ param object is typed inline**: `method({ a, b }: { a: T; b: U }): R`.
 - **Method/function return types are written explicitly** (even though the ESLint rule is off — e.g. `: void`, `Promise<boolean>`).
 - **Wire (API) contract is `snake_case`, internal TypeScript is `camelCase`.** Fields going to/from the client — response bodies (`page_size`, `total_count`, `next_cursor`, `has_next`) and query parameters (`page`, `page_size`, `order_by`) — are `snake_case`; these are defined that way in the Zod schemas. Internal values and transformations (`skip`, `take`, `consumedPoints`) stay `camelCase`.
-- **Time (date/time) from a single source: `ClockService`** (`infrastructure/clock/`, global). Do not read "now" with a bare `Date.now()` / `new Date()` — inject `ClockService`; this way time is mocked deterministically in tests. Choose the accessor by boundary: Luxon `DateTime` (`clock.now()`) for calendar/timezone semantics, epoch millis (`clock.epochMillis()`) for arithmetic and wire formats (Kafka timestamp, etc.), `Date` (`clock.date()`) for the TypeORM `timestamptz` boundary. **Exception — monotonic elapsed-time measurement** (request duration, backoff measurement) does not go through `ClockService`; `performance.now()` is used rather than the wall clock (so that a frozen test clock does not corrupt the measurement).
+- **Time (date/time) from a single source: `ClockService`** (`infrastructure/clock/`, global). Do not read "now" with a bare `Date.now()` / `new Date()` — inject `ClockService`; this way time is mocked deterministically in tests. Choose the accessor by boundary: Luxon `DateTime` (`clock.now()`) for calendar/timezone semantics, epoch millis (`clock.epochMillis()`) for arithmetic and wire formats (wire formats, backoff arithmetic), `Date` (`clock.date()`) for the TypeORM `timestamptz` boundary. **Exception — monotonic elapsed-time measurement** (request duration, backoff measurement) does not go through `ClockService`; `performance.now()` is used rather than the wall clock (so that a frozen test clock does not corrupt the measurement).
 
 ### Comments
 
@@ -369,14 +370,14 @@ The OpenAPI spec is generated **from the same Zod schemas used for validation** 
 > in OpenAPI 3.0, and Portman's response schema validator (Ajv draft-07; expects a number) cannot compile them
 > and **silently skips** that endpoint's schema test (`schemaValidation skipped`). Use inclusive bounds instead:
 > `.int().min(1)` for a positive integer, `.max(n)` for an upper bound. (Only for API schemas that enter OpenAPI;
-> env / Kafka event schemas are out of scope since they do not enter the spec.)
+> env schemas are out of scope since they do not enter the spec.)
 
 Serving and generation:
 
 - The Scalar UI is at `/api/docs`, the raw spec at `/api/docs-json` (wired via `setupDocs` in `main.ts`).
   In production both are behind HTTP basic auth (`DOCS_AUTH_USER` / `DOCS_AUTH_PASSWORD`).
 - `openapi.json` is committed at the repo root and regenerated with `pnpm run docs:generate`
-  (NestJS preview mode — no DB/Redis/Kafka needed). If it drifts from the code, CI fails.
+  (NestJS preview mode — no DB or Redis needed). If it drifts from the code, CI fails.
 - `test/docs.e2e-spec.ts` tests the whole pipeline (envelope, opt-in errors, the served spec).
 - **When the API changes, the client surface is updated too:** in addition to regenerating
   `openapi.json`, the relevant `docs/client-integration/*.md` (endpoint tables, example bodies, path/schema)
@@ -496,7 +497,7 @@ cases:
 
 # Part 2 — Infrastructure design
 
-> How and why the database and Kafka backbone are built the way they are. Deep design/rationale consulted
+> How and why the database, authorisation, audit and storage layers are built the way they are. Deep design/rationale consulted
 > occasionally; for operational "how-to" steps, see `docs/runbooks/`.
 
 ## Database infrastructure
@@ -505,7 +506,7 @@ The production database layer is a small cluster of collaborating containers, al
 `dokploy-network` and reachable from the host only over WireGuard (`10.0.0.1:<port>`).
 
 ```
-app  ──►  PgBouncer  ──►  Timescale (pg16)  ──►  Cloudflare R2
+app  ──►  PgBouncer  ──►  Postgres 17    ──►  Cloudflare R2
  │         (6432)         + pgbackrest                ▲
  │         transaction    binary inside image         │
  │         pooling        (archive_command)           │
@@ -519,24 +520,23 @@ app  ──►  PgBouncer  ──►  Timescale (pg16)  ──►  Cloudflare R2
                   → /metrics
 ```
 
-### Why TimescaleDB
+### Why plain Postgres
 
-Two different data shapes can coexist within the same process:
+Stock Postgres, not TimescaleDB. The tables here are OLTP state; the one append-heavy table (`audit_events`)
+is low volume and an index plus a scheduled `DELETE` handles its retention. Timescale would buy hypertables
+and compression at the cost of a custom image, incompatibility with most managed Postgres offerings, and a
+licence under which compression and retention policies are not in the Apache build.
 
-- OLTP state (users, sessions, orders…) — vanilla Postgres's domain
-- Time-series telemetry (event/audit logs, metrics…) —
-  benefits from hypertables, columnar compression, continuous aggregates, retention policies
-
-Timescale is wire-compatible Postgres, so the OLTP side incurs no cost. TypeORM, the drivers,
-the SQL surface — nothing changes. Time-series tables are defined, when the need arises, within a migration
-via `SELECT create_hypertable(...)`; by default no table should be a hypertable.
+If a project built from this boilerplate does grow real time-series data, the extension can be added later:
+`CREATE EXTENSION timescaledb` plus `SELECT create_hypertable(...)` converts an existing table in a
+migration.
 
 ### Connection routing
 
-| URL                      | Used by                     | Target           |
-| ------------------------ | --------------------------- | ---------------- |
-| `DATABASE_URL`           | App runtime (TypeORM)       | PgBouncer (6432) |
-| `MIGRATION_DATABASE_URL` | typeorm CLI, `db:*` scripts | Timescale (5432) |
+| URL                      | Used by                                    | Target           |
+| ------------------------ | ------------------------------------------ | ---------------- |
+| `DATABASE_URL`           | App runtime (TypeORM)                      | PgBouncer (6432) |
+| `MIGRATION_DATABASE_URL` | typeorm CLI, `db:*` scripts, `audit:prune` | Postgres (5432)  |
 
 PgBouncer runs in **transaction pooling** mode with **native prepared statement support**
 (`max_prepared_statements = 256`) enabled, so it preserves the pg driver defaults — no change is needed on
@@ -544,8 +544,12 @@ the app side. Migrations bypass PgBouncer because DDL transactions and TypeORM's
 migration runner require a dedicated session. The two URLs share the same validation
 (`src/config/env.schema.ts`); if `MIGRATION_DATABASE_URL` is not set, it falls back to `DATABASE_URL` (dev/CI).
 
+> **The two URLs should name different database roles in production.** The audit table's append-only
+> guarantee is a `REVOKE UPDATE, DELETE` on the application role, applied by the migration as the owning
+> role. With a single role the migration warns and skips it, and the guarantee is not in place.
+
 **Pooling constraint — note:** `LISTEN/NOTIFY` and session-level state (other than `SET LOCAL`) do not
-survive transaction pooling. Nothing in the codebase uses these today (events flow from Kafka, jobs from
+survive transaction pooling. Nothing in the codebase uses these today (background work flows through
 BullMQ). If the need arises one day, the relevant feature must connect over `MIGRATION_DATABASE_URL` or a
 dedicated direct pool — not the runtime URL.
 
@@ -564,8 +568,8 @@ dedicated direct pool — not the runtime URL.
 
 ### WAL and future replicas
 
-- `wal_level=logical` — sufficient for both streaming replication _and_ CDC (Debezium → Kafka);
-  the trade economy will need it for real-time analytics and anti-fraud down the line.
+- `wal_level=logical` — sufficient for both streaming replication _and_ logical decoding (CDC), should a
+  project ever stream changes out of the database.
 - `max_wal_senders=10`, `max_replication_slots=10`, `wal_keep_size=1GB`.
 - **Streaming replicas are deliberately not deployed today**: a second Postgres on the same VPS adds
   nothing to disaster tolerance. When a read-load or HA need arises, a replica can be brought up from the
@@ -632,272 +636,77 @@ email!: string | null;
 - **Key rotation:** an encrypted column is persistent data → a **re-encrypt** is mandatory before dropping
   an old key; detail in `docs/runbooks/encryption-key-rotation.md`.
 
-## Kafka messaging
+## Authorisation
 
-The messaging backbone lives under `infrastructure/kafka/`; the mechanism is there, the domain usage
-(concrete event/consumer) is in the relevant `modules/<x>/events/`.
+`modules/auth/rbac/` implements the split that makes RBAC maintainable: **permissions are code, roles are
+data**.
 
-Because the module is large, its interior is split into **concern groups** (rather than a flat pile of subfolders):
+- **Permissions** live in the `Permission` enum. A permission is meaningful only because a route declares it
+  with `@RequirePermission`, so the enum is the source of truth. On boot `PermissionSyncService` projects the
+  enum onto the `permissions` table and **retires** — never deletes — anything that left the code, so a role
+  that still references it neither breaks nor silently widens.
+- **Roles and grants** are rows, managed from the admin API. `role_permissions` references `permissions` with
+  `ON DELETE RESTRICT` for the same reason.
+- **`superuser`** is a system role the boot sync keeps holding every permission. It cannot be edited or deleted
+  through the API — it is the way back in when role data is misconfigured.
 
-```
-infrastructure/kafka/
-├─ kafka.module.ts
-├─ client/          # pure transport: producer, consumer, admin, base-kafka-service, event-headers util
-├─ consumers/       # base-event / base-idempotent / base-retryable abstract consumers
-├─ reliability/     # durability patterns
-│   ├─ outbox/  inbox/  retry/  dlq/   (each is service + entities/ + enums/ + jobs/)
-├─ observability/   # kafka-metrics (service + providers) + kafka.health-indicator
-├─ topics/          # kafka-topic.registry + topic-naming util
-├─ schemas/         # kafka-event.schema (event envelope)
-├─ constants/       # kafka-headers, retry tiers, consumer-groups
-├─ interfaces/      # message / consumer interfaces (related types grouped)
-└─ enums/           # kafka-topic, consumer-error-policy
-```
+`PermissionGuard` runs after `AuthGuard` in the global chain (it needs `request.user`). A route listing several
+permissions requires **all** of them. `UserPermissionsService` caches the resolved set in Redis for five
+minutes; every path that changes a user's roles — or a role's permissions — invalidates the holders, otherwise
+a narrowed role would keep working for the rest of the TTL.
 
-Within the module, imports **between** concern groups use the `@infrastructure/kafka/...` alias
-(resilient to relocation); sibling files in the same folder may stay relative.
+**MFA** (`modules/auth/mfa/`) is TOTP with encrypted secrets and hashed single-use recovery codes. Any account
+holding a role must have it: roles exist only to carry administrative permissions, and an administrative
+account behind a single password is the weakest link. `pnpm admin:create` therefore hands over an account with
+MFA already active.
 
-### Event envelope
+## Audit log
 
-Every event carries a common envelope (`schemas/kafka-event.schema.ts`, a Zod discriminated union, over
-`topic`):
+`infrastructure/audit/` records identity events, administrative mutations and role changes into
+`audit_events`.
 
-```
-meta: {
-  eventId       // uuid — transport message id; equals the outbox row id
-  eventVersion  // schema version (default 1)
-  timestamp     // occurredAt (ms string)
-  dedupKey?     // business-level idempotency key (used instead of eventId in consumer dedup)
-  traceId? / correlationId? / producer?
-}
-topic
-data            // payload that varies by topic, validated by the schema
-```
+- **No foreign key on the actor.** An audit row outlives the account it describes: erasing a user must not
+  erase the record that an administrator suspended them.
+- **Append-only.** The migration revokes `UPDATE` and `DELETE` from the application role, so a compromised
+  application — or an SQL injection through it — cannot cover its tracks. This only applies when
+  `DATABASE_URL` and `MIGRATION_DATABASE_URL` name different roles; with one role the migration warns and
+  skips, because it would otherwise strip the owner of the ability to prune.
+- **Retention** is a standalone task (`pnpm audit:prune`), not an in-process job, precisely because the
+  application must not hold delete rights on this table.
 
-Core metadata (`eventId`, `eventType`, `eventVersion`, `traceId`, `correlationId`) is also mirrored into
-**standard Kafka headers** (`x-event-*`) (`client/event-headers.util.ts`); this way log/observability
-tooling can read it without deserializing the payload. The envelope is still the single source of truth
-for consumers.
+`AuditService.record()` is best-effort by default: a failed insert is logged and swallowed, since failing a
+completed login just to record it trades a real outage for a record. Callers that need the record and the
+change to stand or fall together pass the transaction's `manager`.
 
-### Topic provisioning
+## Object storage
 
-Topics are not left to broker auto-create; they are created **deterministically** at boot by
-`KafkaAdminService` (the kafkajs admin). `topics/kafka-topic.registry.ts` defines
-`{ partitions, replicationFactor, retentionMs?, retryEnabled }` for each main topic; the retry tiers
-(`<topic>.retry.5s|1m|10m`) and DLQ (`<topic>.dlq`) are derived from it (`topics/topic-naming.util.ts`).
-`createTopics` is idempotent: an existing topic is skipped, drift is **logged**, not force-changed.
-The DLQ gets a long retention, the retry topics get a short retention (env: `KAFKA_DLQ_RETENTION_MS`,
-`KAFKA_RETRY_RETENTION_MS`, `KAFKA_TOPIC_PARTITIONS`, `KAFKA_TOPIC_REPLICATION_FACTOR`).
+`infrastructure/storage/` wraps any S3-compatible store (R2, MinIO, AWS). The server never handles file bytes:
+it signs a URL and the client uploads directly.
 
-### Transactional outbox
+- **The signature is the enforcement.** MIME allowlist and size limit are checked before signing, and
+  `content-type` and `content-length` are listed in `signableHeaders` — without that the presigner signs only
+  `host` and the limits become advisory.
+- **One bucket, two prefixes.** `public/` and `private/`; the bucket policy that exposes `public/*` is the
+  single place public readability is decided. `publicUrl()` refuses a key outside the public prefix.
+- The S3 variables are optional as a group — a deployment that stores no files configures none of them, and a
+  half-configured bucket is rejected at boot rather than on the first upload.
 
-To solve the dual-write problem (the DB commit and the Kafka publish can fail independently), events are
-written not directly to Kafka but to an outbox table **within the same transaction** as the business data:
+## Graceful shutdown
+
+Nest's `enableShutdownHooks()` is deliberately **not** used: it calls `app.close()` the moment the signal
+lands, while the load balancer is still routing traffic here. `main.ts` runs the order that matters instead:
 
 ```
-runInTransaction(manager => {
-  // write the business data
-  await outboxService.enqueue({ manager, params: { topic, data, key?, dedupKey? } });
-});
+SIGTERM/SIGINT → readiness reports 503
+              → wait SHUTDOWN_DRAIN_DELAY_MS   (the balancer needs time to notice)
+              → app.close()                    (in-flight requests finish, workers and pools close)
+              → flush telemetry
+              → exit 0
 ```
 
-`OutboxService.enqueue` (`reliability/outbox/outbox.service.ts`) uses the caller's `EntityManager`; it fills in the envelope
-(eventId, eventVersion, timestamp, traceId, producer) and inserts into the `outbox_message` table as
-`pending`. `eventId` is both the row PK and the inbox dedup key.
-
-**The relay** (`reliability/outbox/jobs/outbox-relay.processor.ts`, `BaseIntervalProcessor`) ticks every
-`KAFKA_OUTBOX_RELAY_INTERVAL_MS` and, in a single transaction:
-
-1. Ensures **global single-flight** (across replicas) with `pg_try_advisory_xact_lock(<constant>)`;
-   if it cannot acquire it, it exits.
-2. Fetches `status='pending' AND available_at<=now()` rows in `created_at ASC` order
-   with `FOR UPDATE SKIP LOCKED`.
-3. Publishes **in order** with the idempotent producer (grouped by topic, key=`partition_key`).
-4. Marks the rows `published` and commits.
-
-On a publish error the transaction is rolled back and the rows stay `pending`; in a separate short transaction,
-`attempts++`, `last_error`, and `available_at=now()+exponential_backoff` (base `KAFKA_OUTBOX_BACKOFF_MS`,
-2× per attempt, capped by `KAFKA_OUTBOX_BACKOFF_MAX_MS`) are applied. If the `attempts` cap
-(`KAFKA_OUTBOX_MAX_ATTEMPTS`) is exceeded, the row becomes `failed` (poison-row protection) and an alert metric
-is counted — a single bad row does not lock the relay. `published` rows are deleted after
-`KAFKA_OUTBOX_RETENTION_MS` by a daily prune job (`KAFKA_OUTBOX_PRUNE_CRON`).
-
-**Guarantee model:** the relay is **at-least-once** (a relay crash/broker hang can rarely republish);
-double processing is prevented by consumer-side inbox dedup. This is why **the outbox must not be opened to
-real domain traffic before the inbox is ready**. The relay transaction stays open for the duration of the
-Kafka publish (a network call) → connection pinning in PgBouncer; it is bounded by a small batch.
-
-**Ordering guarantee:** the relay batch is fetched in `created_at` order and published grouped by topic with
-the same key → **order is preserved within the same topic + same key**. Between events going to different
-topics (even in a single batch), **order is not guaranteed** (partitions are published in parallel). If there
-is a causal link between two different topics (e.g. "X opened" → "X sold"), either use a single topic+key or
-make the consumers resilient to out-of-order delivery.
-
-> **Infra entity glob:** mechanism tables like outbox/inbox are not domain; this is why the
-> `typeorm.data-source.ts` entity glob also covers `infrastructure/**/entities/*.entity.ts`.
-> These tables are OLTP, **not hypertables**.
-
-### Idempotent consumer (transactional inbox)
-
-With at-least-once delivery the same event can arrive multiple times. `BaseIdempotentConsumer`
-(`consumers/base-idempotent-consumer.abstract.ts`) turns this into **exactly-once-effect**:
-within a single transaction, `processEvent` first attempts to write a row to `inbox_message`
-(`InboxService.tryConsume` → `INSERT ... ON CONFLICT DO NOTHING`), and if the row is new, runs the domain
-logic (`handleEvent({ event, manager })`) with the **same manager**. This makes the business write and the
-dedup mark atomic; on redelivery the insert conflicts and `handleEvent` is skipped.
-
-- The dedup key is per consumer-group: PK `(consumer, dedup_id)`, `consumer = consumer
-group id`. Different groups process the same event independently.
-- `dedup_id = meta.dedupKey ?? meta.eventId`. Consumers that need business-level idempotency put a
-  `dedupKey` on the event (this also catches double production of the same business action with different eventIds).
-- **Rule:** `handleEvent` must use only the given `manager`; it must **not open a nested independent
-  transaction** (otherwise atomicity breaks).
-- For **pure side-effect consumers** (those that make an external call without a DB write — push, HTTP)
-  exactly-once is **not guaranteed** (external effect + DB tx are not atomic). These consumers must pass the
-  `eventId` to the external API as an idempotency key, or accept "best-effort, duplicates possible".
-- If `handleEvent` throws, the transaction is rolled back (the inbox row is not written) and `handleMessage`
-  rethrows the error → Kafka redelivery → safe retry.
-- `processed_at` rows are cleaned up by a daily prune job (`KAFKA_INBOX_PRUNE_CRON`,
-  `KAFKA_INBOX_RETENTION_MS`).
-
-### Tiered retry + DLQ
-
-For processing errors, `BaseRetryableConsumer` (`consumers/base-retryable-consumer.abstract.ts`,
-on top of `BaseIdempotentConsumer`) provides non-blocking tiered retry. It runs **two separate consumers**:
-
-- **Main consumer** (group `g`): consumes the main topic; success → commit; a processing error → produces
-  the message to the first retry tier (`<topic>.retry.5s`) and commits (does not block the partition).
-- **Retry consumer** (group `g.retry`, `autoCommit:false`): consumes all retry tier topics
-  (`5s/1m/10m`). If a message is not yet ready (`message.timestamp + tierDelay > now`), it **pauses**
-  the partition, **seeks** to the offset, and after the delay **resumes** via `setTimeout` — without
-  committing (the heartbeat flow continues, the partition is not blocked). Once ready, it reprocesses;
-  success → `commit`; another error → to the next tier, and if the last tier is also exhausted, it produces
-  to the **DLQ** (`<topic>.dlq`). The escalation state is in Kafka headers (`x-original-topic`,
-  `x-retry-attempt`, `x-first-failed-at`, `x-last-error`).
-
-Reprocessing **goes through inbox dedup** (logical consumer = main group), so retry/DLQ reprocessing does
-not create a duplicate business effect. During a rebalance/restart, pending retry timers are cancelled in
-`onModuleDestroy`; the effect of the narrow race between revoke→cancel is bounded by inbox dedup.
-
-**Ordering caveat (important):** when a message escalates to retry, the subsequent messages of the same key
-on the main topic can be processed while that message waits in retry → **there is no per-key ordering
-guarantee after escalation**. Order-sensitive topics (causal/ordered chains) must be marked
-`retryEnabled:false` in the registry (straight to DLQ on the first error); and consumers must look
-not only at dedup but also at **business preconditions** (resilience to out-of-order delivery).
-
-### DLQ replay
-
-`pnpm kafka:dlq:replay --topic <topic>.dlq [--consumer <groupId>] [--limit N] [--filter <eventId>] [--dry-run] [--force]`
-(`reliability/dlq/scripts/dlq-replay.script.ts`) reads the DLQ with a temporary consumer group and re-produces the messages to the **original
-topic** (the `topic` in the envelope is preserved). `--dry-run` only reports; `--filter`
-targets a single eventId/dedupKey.
-
-**Replay semantics:** a message that fell to the DLQ due to a processing error (processEvent throw → rollback)
-has no inbox row → replay processes it normally. But a message that was **processed successfully** and then
-arrived at the DLQ is **silently skipped** on replay because of inbox dedup; `--force` is required to reprocess it.
-`--force` **requires `--consumer <groupId>`** so that dedup can be deleted only for the targeted consumer —
-otherwise deleting the `dedup_id` from all consumer groups would accidentally trigger reprocessing in the other
-consumers too. Unparseable (poison) messages fall to the DLQ raw (with an `x-last-error` header) and are not
-processed automatically by replay — they must be inspected manually.
-
-**Retention interaction:** inbox rows are pruned after `KAFKA_INBOX_RETENTION_MS` (default 7d); the DLQ keeps
-them for `KAFKA_DLQ_RETENTION_MS` (default 14d). If the inbox window is shorter than the DLQ, a `--force`-less
-replay done after the inbox row is pruned can silently reprocess. If you want replay to always be explicit, set
-`KAFKA_INBOX_RETENTION_MS >= KAFKA_DLQ_RETENTION_MS`.
-
-### Observability
-
-Prometheus metrics (`observability/kafka-metrics.providers.ts`, at `/api/v1/metrics`): `kafka_outbox_pending`
-(gauge), `kafka_outbox_published_total`, `kafka_outbox_failed_total`, `kafka_retry_total{tier}`,
-`kafka_dlq_total{topic}`, `kafka_inbox_duplicates_total`, `kafka_dlq_replayed_total`. **Alert
-suggestions:** a rise in `kafka_dlq_total` (unprocessable message), a high `kafka_outbox_pending` (relay
-falling behind), `kafka_outbox_failed_total` > 0 (a poison outbox row). Each event's consumer processing is
-wrapped in a Sentry span (`kafka.process <topic>`), and the producer's `traceId` is attached as an attribute
-→ end-to-end correlation.
-
-### Schema evolution
-
-A self-contained JSON + Zod convention (Schema Registry/Avro deliberately **deferred** —
-consistent with the polling/self-contained choice). Rules:
-
-- **Backward-compatible (non-breaking)** change: add only **optional** fields. `eventVersion` can stay
-  the same. Consumers are **tolerant readers**: they ignore fields they do not know and use a default for a
-  missing optional.
-- **Breaking** change (removing/renaming a field, changing a type): bump `eventVersion`; throughout the
-  rolling deploy, a consumer must be able to process both the old and new versions (branch the schema by
-  version if needed). The old version is supported until it is gone from the entire fleet.
-- Producer and consumer are deployed independently; this is why the order "first make the consumer tolerant
-  of the new field, then migrate the producer" is followed.
-
-### RF=1 risk (production)
-
-The current Kafka is a single broker, **replication factor = 1** (dev and prod). In this topology `acks=all`
-(`acks=-1`) is effectively equal to `acks=1`: it returns when the single broker acks. The idempotent producer
-prevents broker-side duplicates **within the same session**, but **on broker loss, messages after publish /
-before consume can be permanently lost**. The outbox only guarantees delivery from Postgres → broker;
-post-broker durability depends on the RF. **Real-money / critical-economy traffic must be raised to RF=3
-before going to prod** (`KAFKA_TOPIC_REPLICATION_FACTOR` + a broker cluster). This is an infrastructure
-decision; the application code is independent of the RF.
-
-## Realtime (WebSocket) channel
-
-`infrastructure/realtime/` — a socket.io channel set up so that a change on one of a user's devices is reflected on their other devices **without polling**. The client contract is also in `docs/client-integration/05-realtime.md` (the authoritative wire
-document).
-
-**Thin-event doctrine (the single rule).** A pushed event **carries no value** — it says only _what_ went stale
-(`resource_invalidated` → re-read this resource). The real state always comes from an HTTP GET checkpoint; the cost of a missed
-event is only the re-sync the client does on its next read/reconnect. This is why the channel is best-effort
-(no ack/replay/ordering) — a live/authoritative value is never pushed. A future need to carry a value (e.g. a chat message) does **not add a value field** to this envelope —
-it becomes a separate event family.
-
-**Driver-conditional module (`REALTIME_DRIVER`, the MailModule pattern).** `RealtimeModule` selects its provider set at module-load time
-according to env:
-
-- `socketio` — the gateway holds the io server + is the `IRealtimePublisher`, and runs the Kafka→client fanout consumer. The prod
-  transport (the env schema requires `socketio` in prod).
-- `log` — no socket; the fanout consumer still runs, and the log publisher records what WOULD be pushed (pipeline observation without
-  a live socket; the test/CI default).
-- `off` — nothing is wired (an operational kill-switch). Producers keep writing the event to the outbox regardless of the driver
-  (standard outbox: producer decoupled from consumer); under `off` nobody consumes → nothing is delivered
-  (fine, since it is best-effort).
-
-**Publisher port (`REALTIME_PUBLISHER`).** The fanout consumer depends only on this token + the `IRealtimePublisher`
-interface, never on a concrete driver. `RealtimeModule` binds the token to the gateway or the log publisher —
-changing the transport (e.g. Centrifugo) is a one-line binding change without touching the consumer.
-
-**Kafka → client fanout.** `RealtimeFanoutConsumer` consumes internal domain events (generic push events + `SessionRevoked`
-— from the outbox, atomic with the business write) and turns each into an ephemeral push or a kick. Deliberately
-**NO inbox dedup**: each effect is idempotent (a repeat invalidation → the client re-fetches what it already knows; disconnecting a non-existent
-socket is a no-op), and a dedup row would be a wasted DB write on the hot path.
-
-**Handshake auth = `ACCESS_TOKEN_VERIFIER` dependency-inversion.** The global HTTP guard chain does NOT run on the WS upgrade;
-identity is enforced in the gateway's handshake middleware. The verifier port (token + interface) sits in `shared/`,
-and the `@Global AccessTokenVerifierModule` binds it to the domain auth adapter — so an **infrastructure**
-entry (the gateway) verifies the token WITHOUT importing a **domain** module; the `modules → infrastructure → shared` direction
-is preserved. Auth's **parity** with the HTTP guard is a security requirement (a logged-out session must not be able to open a
-socket with a not-yet-expired token). The two-layer handshake rate limit (a pre-verify per-IP flood gate + a post-verify per-user
-budget) and the per-user connection cap are here too; a rejection is reflected to the client as
-`connect_error('unauthorized' | 'rate_limited')`. It does not outlive the socket's identity: disconnect on access token expiry (the client reconnects with a fresh token),
-and `session_revoked` drops it the moment it happens.
-
-**Why `RedisIoAdapter` is in `main.ts`.** The Redis-backed socket.io adapter (pub/sub) fans an emit out to EVERY instance's
-connections in that room — the primitive of multi-gateway horizontal scale (500k–1M sockets). It is bound not via DI on `app`, but
-at bootstrap with `app.useWebSocketAdapter(new RedisIoAdapter(app))` (this is how the Nest WS adapter API sets it
-up), only on the `socketio` driver. Two separate raw ioredis connections (pub + sub) are isolated from the fail-closed `RedisService`,
-namespaced under `keyPrefixes.realtime`. (Access-token expiry timers are held NOT in socket.data but in an in-gateway
-`Map` — the adapter serializes socket.data across instances via `fetchSockets`, and a Node
-`Timeout`, being circular, cannot cross that boundary.)
-
-**When adding a new client event type (recipe):**
-
-1. `infrastructure/kafka/enums/kafka-topic.enum.ts` + `topics/kafka-topic.registry.ts` — add the internal topic (if ephemeral,
-   a short `retentionMs`, `retryEnabled: false`).
-2. `infrastructure/kafka/schemas/kafka-event.schema.ts` — add the internal (camelCase) event to the discriminated union.
-3. `infrastructure/realtime/schemas/realtime-event.schema.ts` — add the client-facing (snake_case) envelope to the union with `v: 1`
-   (contract evolution: a breaking reshape bumps `v`, an additive field does not; a new meaning = a new `type`).
-4. `consumers/realtime-fanout.consumer.ts` — a `case` in the `processEvent` switch that maps the internal event to the client envelope.
-5. Add the producer with `OutboxService.enqueue` **in the same transaction** as the business write (never publish directly).
-6. Update `docs/client-integration/05-realtime.md` (the channel is not REST; it does not enter `openapi.json`, the contract is by hand).
+All of it under `SHUTDOWN_TIMEOUT_MS`; exceeding it exits non-zero on our own terms rather than waiting for a
+SIGKILL. Readiness checks the drain flag **before** its own cache, or a cached healthy result would keep
+traffic arriving for the length of the TTL.
 
 ---
 

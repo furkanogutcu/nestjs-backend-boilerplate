@@ -111,8 +111,7 @@ that backoff delays are exact (deterministic). Assert the delays with `sleepMock
 Inside the spec, define a minimal concrete subclass that implements the abstract members and exposes the
 protected method you need, then test through it.
 
-## Kafka / external clients — `kafka-producer.service.spec.ts`, `kafka-consumer.service.spec.ts`
+## Guards that resolve authorisation — `permission.guard.spec.ts`
 
-Spy on the kafkajs prototype: `vi.spyOn(Kafka.prototype, 'producer').mockReturnValue(producerMock)`.
-For reconnect logic, use fake timers and `advanceTimersByTimeAsync(5000)`. To test message mapping,
-extract the `eachMessage` callback from `consumer.run.mock.calls[0][0]`.
+Mock `Reflector.getAllAndOverride` for the declared permissions and `UserPermissionsService.forUser` for the
+granted set. Cover: no declaration (allowed), unauthenticated (401), missing one of several (403).

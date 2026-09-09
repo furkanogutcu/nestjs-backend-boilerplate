@@ -15,10 +15,10 @@ Dokploy deploys **two separate projects** that share the `dokploy-network`:
 ### Why two projects
 
 - **Different release cadences.** The Node app is redeployed on every push; the infra (DB, Redis,
-  Kafka, PgBouncer, pgBackRest, exporters) almost never is. Separating them ensures app deploys do
+  PgBouncer, pgBackRest, exporters) almost never is. Separating them ensures app deploys do
   not recreate the stateful containers.
 - **Blast radius.** A bad app build can be rolled back without touching the database stack. A risky
-  infra change (e.g. a Timescale bump) is its own planned, reviewed deploy.
+  infra change (e.g. a Postgres bump) is its own planned, reviewed deploy.
 - **Separation of concerns.** App config (`.env.sample` — validated by `src/config/env.schema.ts`)
   and infra config (`.env.deploy.sample` — consumed by Docker Compose) each stay in their own
   scope.
@@ -73,14 +73,10 @@ the container enters a crash loop.
    DATABASE_URL=postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@app-prod-pgbouncer:6432/<POSTGRES_DB>
    MIGRATION_DATABASE_URL=postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@app-prod-db:5432/<POSTGRES_DB>
    REDIS_URL=redis://default:<REDIS_PASSWORD>@app-prod-redis:6379/0
-   KAFKA_BROKERS=app-prod-kafka:9092
-   KAFKA_SASL_MECHANISM=plain
-   KAFKA_SASL_USERNAME=<KAFKA_USERNAME>
-   KAFKA_SASL_PASSWORD=<KAFKA_PASSWORD>
    ```
 
    The credentials in these URLs must match the values set in the infra project's env (the same
-   Postgres user, the same Redis password, the same Kafka SASL pair — here only cast into URI form).
+   Postgres user, the same Redis password — here only cast into URI form).
 
 4. **Network:** Dokploy automatically attaches Application projects to `dokploy-network`. No manual
    config is required.
@@ -89,7 +85,7 @@ the container enters a crash loop.
    backend idle) are already set for this.
 
    > **Close the readiness probe at the edge.** `/health/ready` (and `/api/v1/health/ready`) reflects
-   > dependency (DB/Redis/Kafka) health; if left publicly exposed it signals the timing of a
+   > dependency (DB/Redis) health; if left publicly exposed it signals the timing of a
    > dependency outage to the outside (the body is only `ok`/`error`, but that is still information).
    > Block this path from external hosts in Traefik (e.g. a middleware returning 403/404 for the
    > path-prefixes `/health/ready` and `/api/v1/health/ready`), so it is reachable only from the
@@ -126,7 +122,7 @@ curl -fsS http://10.0.0.1:9127/metrics | head        # pgbouncer_exporter
 | ------------------------------------ | ---------------------------------- |
 | App code only                        | App project only                   |
 | `docker-compose.production.yml`      | Infra project only                 |
-| `Dockerfile` (timescaledb custom)    | Infra project (rebuild)            |
+| `Dockerfile` (postgres custom)       | Infra project (rebuild)            |
 | `docker/pgbouncer/pgbouncer.ini`     | Infra project (pgbouncer recreate) |
 | App `.env.sample` variables          | App project env panel              |
 | Infra `.env.deploy.sample` variables | Infra project env panel            |
@@ -135,7 +131,7 @@ curl -fsS http://10.0.0.1:9127/metrics | head        # pgbouncer_exporter
 
 - **App:** Dokploy keeps the previous build — one-click rollback from the Deployments tab.
 - **Infra:** stateful. For stateless changes, container rollback is seamless (PgBouncer, exporters).
-  For Timescale (image bump, postgresql.conf change), always test the rollback path on a restored
+  For Postgres (image bump, postgresql.conf change), always test the rollback path on a restored
   backup before deploying. See `database-restore.md`.
 
 ## Common issues

@@ -17,7 +17,7 @@ completes.
 
 ## Architecture in one paragraph
 
-The `archive_command` runs inside the Timescale container (the image was custom-built to
+The `archive_command` runs inside the Postgres container (the image was custom-built to
 include the `pgbackrest` binary). It pushes WAL files to a local spool volume
 (`/var/spool/pgbackrest`, shared with the sidecar), and a separate `pgbackrest` sidecar
 (`woblerr/pgbackrest`) flushes them asynchronously to R2 and runs the scheduled
@@ -65,7 +65,7 @@ docker compose -f docker-compose.production.yml exec pgbackrest \
 docker compose exec pgbackrest pgbackrest info
 
 # Is WAL archiving flowing?
-docker compose exec timescaledb psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+docker compose exec postgres psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
   -c "SELECT * FROM pg_stat_archiver;"
 ```
 

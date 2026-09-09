@@ -18,7 +18,7 @@ Write an integration test **only** when a mock would lie about the behavior:
 - `DatabaseService.runInTransaction` against real Postgres — rollback on throw is the whole point of it.
 
 Everything else (exceptions, transformers, filter, interceptors, pipe, guard logic, schemas, utils,
-crypto, kafka producer/consumer wiring) is better and faster as a mocked unit test.
+crypto, storage client wiring) is better and faster as a mocked unit test.
 
 ## Integration pattern (Testcontainers)
 
