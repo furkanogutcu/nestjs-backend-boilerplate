@@ -82,11 +82,11 @@ export class OAuthService {
     const identity = await this.appleVerifier.verify({ idToken });
     await this.consumeNonce({ userId, nonce: identity.nonce });
 
-    // * Apple never returns the name in the ID token; the client forwards it (untrusted) on first authorization.
+    // ! Client-forwarded and untrusted: Apple never returns the name in the ID token.
     return await this.link({ userId, provider: OAuthProvider.Apple, identity: { ...identity, name } });
   }
 
-  // * Game Center has no server-issued nonce: the signature's freshness window and replay guard stand in; the refresh token still proves step-up possession.
+  // * Game Center has no server-issued nonce; its freshness window and replay guard stand in.
   async linkGameCenter({
     teamPlayerId,
     publicKeyUrl,
@@ -179,7 +179,7 @@ export class OAuthService {
     return await this.signIn({ provider: OAuthProvider.PlayGames, identity, userAgent });
   }
 
-  // * Pre-auth account takeover surface: verify token -> consume nonce -> ONLY THEN resolve the account.
+  // ! Order matters: verify token, consume nonce, and ONLY THEN resolve the account.
   private async signIn({
     provider,
     identity,

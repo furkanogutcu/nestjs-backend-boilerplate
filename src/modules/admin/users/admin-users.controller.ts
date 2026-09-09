@@ -46,8 +46,6 @@ export class AdminUsersController {
     const page = await this.adminUsersService.list({
       skip: pagination.skip,
       take: pagination.take,
-      // * SearchParams types each clause as a FindOperator over the column, which is exactly what TypeORM
-      // * receives; the two type shapes only differ on non-string columns the search never touches.
       search: search as FindOptionsWhere<User>[] | undefined,
       suspended: suspended === undefined ? undefined : suspended === 'true',
     });

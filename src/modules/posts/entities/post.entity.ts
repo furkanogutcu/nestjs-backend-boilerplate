@@ -34,11 +34,10 @@ export class Post {
   @Column({ type: 'text' })
   body!: string;
 
-  // * Storage key, not a URL: the public origin can change without rewriting every row.
   @Column({ type: 'varchar', length: 255, nullable: true })
   coverImageKey!: string | null;
 
-  // * Null means draft. A timestamp rather than a boolean so "when did this go live" needs no second column.
+  // * Null means draft.
   @Index()
   @Column({ type: 'timestamptz', nullable: true })
   publishedAt!: Date | null;

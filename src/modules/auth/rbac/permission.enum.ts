@@ -1,8 +1,4 @@
-// * The catalogue of permissions this codebase actually enforces. A permission is meaningful only because
-// * some route declares it via @RequirePermission, so the enum — not the database — is the source of truth.
-// * Roles and role→permission grants are data (managed from the admin API); the permissions themselves are code.
-// * Adding a value here makes it available to grant after the next boot; removing one retires it (see
-// * PermissionSyncService), it is never silently dropped from existing roles.
+// ! The enum is the source of truth, not the database: removing a value retires it rather than dropping it from roles.
 export enum Permission {
   UsersRead = 'users:read',
   UsersWrite = 'users:write',

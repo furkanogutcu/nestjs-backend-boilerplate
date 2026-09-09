@@ -10,11 +10,7 @@ interface IRefreshCarrier extends Record<string, unknown> {
   refresh_token?: string;
 }
 
-// * Applied to the token-issuing handlers. For a web client it moves the freshly issued refresh_token out of the
-// * JSON body into an HttpOnly cookie (+ a CSRF cookie) so browser JS never touches it; mobile responses pass
-// * through untouched (token stays in the body). Runs at the handler level, so it sees the raw snake_case payload
-// * before the global response envelope wraps it — the response schema keeps refresh_token optional to allow its
-// * absence for web.
+// * Moves refresh_token from the body into an HttpOnly cookie for web clients; mobile responses pass through.
 @Injectable()
 export class RefreshCookieInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {

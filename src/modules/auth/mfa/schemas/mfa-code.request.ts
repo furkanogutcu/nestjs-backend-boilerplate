@@ -1,7 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-// * Accepts a 6-digit TOTP code or a 20-character hex recovery code; the service decides which it is.
 export const mfaCodeRequestSchema = z
   .object({
     code: z

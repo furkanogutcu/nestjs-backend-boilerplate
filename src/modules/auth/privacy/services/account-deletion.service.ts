@@ -81,8 +81,6 @@ export class AccountDeletionService {
     return { requestedAt, scheduledFor: requestedAt ? this.scheduledFor(requestedAt) : null };
   }
 
-  // * Swept by the scheduled job. Runs one account at a time so a single failure cannot abort the rest of the
-  // * batch, and so each erasure gets its own audit record.
   async eraseExpired(): Promise<number> {
     const cutoff = new Date(this.clock.epochMillis() - env.ACCOUNT_DELETION_GRACE_DAYS * MILLISECONDS_PER_DAY);
     const due = await this.users.find({
@@ -106,8 +104,7 @@ export class AccountDeletionService {
     return erased;
   }
 
-  // ! Irreversible. The audit row is written BEFORE the delete and deliberately carries no personal data: the
-  // ! account row is gone afterwards, and an audit trail that erasure happened is itself a GDPR obligation.
+  // ! Irreversible. The audit row is written BEFORE the delete and carries no personal data.
   async erase({ userId }: { userId: string }): Promise<void> {
     await this.sessionService.revokeAllForUser({ userId });
 

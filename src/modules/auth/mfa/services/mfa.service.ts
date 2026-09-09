@@ -41,8 +41,6 @@ export class MfaService {
     private readonly clock: ClockService,
   ) {}
 
-  // * Creates (or replaces) an unconfirmed credential and hands back the secret to display once. Nothing is
-  // * enforced until confirm() proves the user can produce a code, so an abandoned enrolment locks nobody out.
   async beginEnrolment({ userId }: { userId: string }): Promise<IMfaEnrolment> {
     const existing = await this.credentials.findOne({ where: { userId } });
 
@@ -63,8 +61,7 @@ export class MfaService {
     return { secret, otpauthUri: this.buildUri({ secret, accountLabel: await this.accountLabel(userId) }) };
   }
 
-  // * Confirms enrolment and issues the recovery codes. They are returned once, in plaintext, and stored hashed —
-  // * this is the only moment the user can write them down.
+  // ! The only moment the plaintext recovery codes exist; they are stored hashed.
   async confirmEnrolment({ userId, code }: { userId: string; code: string }): Promise<{ recoveryCodes: string[] }> {
     const credential = await this.requireCredential(userId);
 
@@ -93,8 +90,7 @@ export class MfaService {
     return { recoveryCodes };
   }
 
-  // * Operator path (`admin:create`): hands over an account with MFA already active, because an administrative
-  // * account must never exist in a password-only state — not even for the minutes before its first login.
+  // ! MFA is active from creation: an administrative account must never exist in a password-only state.
   async provisionConfirmed({ userId }: { userId: string }): Promise<IMfaEnrolment & { recoveryCodes: string[] }> {
     const secret = this.generateSecret();
     const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => this.generateRecoveryCode());
@@ -124,13 +120,10 @@ export class MfaService {
     });
     const enrolled = credential?.confirmedAt != null;
 
-    // ! Any role at all makes MFA mandatory: roles exist only to grant administrative permissions, and an
-    // ! administrative account behind a single password is the weakest link in the whole system.
+    // ! Any role at all makes MFA mandatory: roles exist only to grant administrative permissions.
     return { enrolled, required: enrolled || hasRole };
   }
 
-  // * Accepts a TOTP code or an unused recovery code; a recovery code is consumed on use. Throws on failure so
-  // * callers cannot forget to check a boolean.
   async verify({ userId, code }: { userId: string; code: string }): Promise<void> {
     const credential = await this.requireCredential(userId);
 
@@ -198,12 +191,10 @@ export class MfaService {
     return totp.validate({ token: code.trim(), window: TOTP_WINDOW, timestamp: this.clock.epochMillis() }) !== null;
   }
 
-  // * Returns the remaining hashes when the code matched, or null when it did not.
   private consumeRecoveryCode({ hashes, code }: { hashes: string[]; code: string }): string[] | null {
     const candidate = Buffer.from(this.hash(code.trim()), 'hex');
 
-    // ! Every stored hash is compared even once one has matched: stopping early would let the response time
-    // ! reveal the position of the code that was presented.
+    // ! No early exit once matched: the response time would reveal the position of the presented code.
     const matches = hashes.map((stored) => {
       const storedBuffer = Buffer.from(stored, 'hex');
 
@@ -214,8 +205,6 @@ export class MfaService {
     return matchedIndex === -1 ? null : hashes.toSpliced(matchedIndex, 1);
   }
 
-  // * What the authenticator app shows next to the code. The email is the recognisable handle; the id is only a
-  // * fallback for an account that has none.
   private async accountLabel(userId: string): Promise<string> {
     const user = await this.users.findOne({ where: { id: userId }, select: { id: true, email: true } });
 

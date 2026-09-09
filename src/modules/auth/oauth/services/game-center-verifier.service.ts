@@ -45,7 +45,6 @@ interface ICachedCertificate {
 export class GameCenterVerifier {
   private readonly replayPrefix = appConfig.redis.keyPrefixes.gameCenterReplay;
   private readonly certificateCache = new Map<string, ICachedCertificate>();
-  // * Pinned DigiCert trust anchors (public certs shipped under certs/; rotate them when Apple's chain changes).
   private readonly certsDir = join(__dirname, 'certs');
   private readonly intermediateCa = this.loadTrustAnchor(GAME_CENTER_INTERMEDIATE_CA_FILE);
   private readonly rootCa = this.loadTrustAnchor(GAME_CENTER_ROOT_CA_FILE);
@@ -60,7 +59,6 @@ export class GameCenterVerifier {
     }
   }
 
-  // * No JWT and no server-issued nonce (unlike OIDC): rebuild the payload Apple signed (playerId + bundleId + timestamp + salt), verify it against the Apple cert, then guard freshness and replay (single-use signature in Redis).
   async verify(assertion: IGameCenterAssertion): Promise<IOAuthIdentity> {
     try {
       const certificateUrl = this.assertTrustedUrl(assertion.publicKeyUrl);
@@ -78,7 +76,7 @@ export class GameCenterVerifier {
 
       return { providerUserId: assertion.teamPlayerId };
     } catch (error) {
-      // * Deliberate app errors (401 invalid-signature, 503 replay-guard unavailable) propagate as-is; unexpected crypto/parse failures normalize to an invalid-signature rejection.
+      // ! Let a deliberate 401/503 through; only unexpected failures normalize to an invalid signature.
       if (error instanceof AppException) {
         throw error;
       }
@@ -173,7 +171,7 @@ export class GameCenterVerifier {
     }
   }
 
-  // * Second layer behind host pinning: prove the fetched leaf was signed by the pinned intermediate and carries Apple's org, so a valid-but-unrelated code-signing cert served from the pinned host can't pass.
+  // ! Second layer behind host pinning: an unrelated code-signing cert served from the pinned host must not pass.
   private assertIssuedByApple(certificate: X509Certificate): void {
     if (!certificate.verify(this.intermediateCa.publicKey)) {
       throw this.invalidSignature();
@@ -188,7 +186,6 @@ export class GameCenterVerifier {
     }
   }
 
-  // * The signed payload includes the bundle id but the assertion doesn't carry it; try each configured bundle id so one backend serves multiple app variants.
   private signatureMatches({
     certificate,
     assertion,
@@ -220,9 +217,7 @@ export class GameCenterVerifier {
   }
 
   private async assertNotReplayed(signature: string): Promise<void> {
-    // * Fingerprint the DECODED signature bytes, not the base64 string: Buffer.from(...,'base64') is lenient
-    // * (base64url, missing padding, whitespace all decode to the same bytes), so hashing the raw string would let a
-    // * re-encoded copy of one valid assertion produce a fresh fingerprint and bypass the single-use replay guard.
+    // ! Fingerprint the DECODED bytes: base64 decoding is lenient, so a re-encoded copy would bypass the replay guard.
     const fingerprint = createHash('sha256').update(Buffer.from(signature, 'base64')).digest('hex');
     const key = CacheKey.join(this.replayPrefix, fingerprint);
     const stored = await this.redisService.getClient().set(key, '1', 'EX', GAME_CENTER_REPLAY_GUARD_TTL_SECONDS, 'NX');
@@ -239,7 +234,6 @@ export class GameCenterVerifier {
     });
   }
 
-  // * Read as utf-8 (PEM text), distinct from the binary leaf fetched from Apple; the .pem files ship to dist via nest-cli assets.
   private loadTrustAnchor(fileName: string): X509Certificate {
     try {
       return new X509Certificate(readFileSync(join(this.certsDir, fileName), 'utf-8'));

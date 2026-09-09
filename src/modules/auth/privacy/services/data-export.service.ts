@@ -14,8 +14,6 @@ import { MfaCredential } from '../../mfa/entities/mfa-credential.entity';
 import { Role } from '../../rbac/entities/role.entity';
 import { UserRole } from '../../rbac/entities/user-role.entity';
 
-// * The shape handed to the person: their own record, everything linked to it, and the security events recorded
-// * about them. Deliberately free of anything that would let the export itself be used to impersonate them.
 export interface IDataExport {
   exported_at: string;
   account: Record<string, unknown>;
@@ -84,8 +82,7 @@ export class DataExportService {
         last_seen_at: user.lastSeenAt?.toISOString() ?? null,
         created_at: user.createdAt.toISOString(),
       },
-      // ! Never the token hash: a refresh-token hash plus the pepper is a credential, and an export is a file
-      // ! that ends up in inboxes and cloud drives.
+      // ! Never the token hash: it is a credential, and an export ends up in inboxes and cloud drives.
       sessions: sessions.map((session) => ({
         id: session.id,
         created_at: session.createdAt.toISOString(),

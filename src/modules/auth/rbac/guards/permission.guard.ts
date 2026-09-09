@@ -28,8 +28,7 @@ export class PermissionGuard implements CanActivate {
 
     const request: Request = context.switchToHttp().getRequest();
 
-    // ! Runs after AuthGuard in the APP_GUARD chain. A @Public route that also declares @RequirePermission has
-    // ! no authenticated user, so it is rejected rather than silently allowed.
+    // ! A @Public route that also declares @RequirePermission has no user, so it is rejected, not allowed.
     if (!request.user) {
       throw new AppUnauthorizedException();
     }

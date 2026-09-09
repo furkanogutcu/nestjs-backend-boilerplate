@@ -17,14 +17,10 @@ import {
 
 const CSRF_TOKEN_SIGNATURE_SEPARATOR = '.';
 
-// * Secure cookies only travel over HTTPS; skip the flag outside production so localhost (http) still works.
 function isSecure(): boolean {
   return env.NODE_ENV === 'production';
 }
 
-// * Issue (or rotate) the readable CSRF cookie the SPA echoes into the CSRF header (double-submit). Root-scoped and
-// * not HttpOnly so browser JS can read it; the value is high-entropy, HMAC-signed and single-purpose. Standalone so
-// * the CSRF bootstrap endpoint can hand a fresh token to a page that has not authenticated yet.
 export function setCsrfCookie(params: { response: Response }): void {
   params.response.cookie(CSRF_TOKEN_COOKIE, issueCsrfToken(), {
     secure: isSecure(),
@@ -35,8 +31,6 @@ export function setCsrfCookie(params: { response: Response }): void {
   });
 }
 
-// * Issue the web refresh transport: the token as an HttpOnly, auth-path-scoped cookie (JS-invisible, sent only to
-// * auth routes) plus a fresh root-scoped CSRF cookie. Both SameSite=Strict, expiring with the refresh token.
 export function setAuthCookies(params: { response: Response; refreshToken: string }): void {
   params.response.cookie(REFRESH_TOKEN_COOKIE, params.refreshToken, {
     secure: isSecure(),
@@ -55,9 +49,7 @@ export function clearAuthCookies(params: { response: Response }): void {
   params.response.clearCookie(CSRF_TOKEN_COOKIE, { ...base, path: CSRF_COOKIE_PATH });
 }
 
-// * Resolve the presented refresh token by transport: a refresh cookie means a web client, and because that cookie
-// * is ambient it MUST clear the double-submit CSRF check; otherwise fall back to the request body (mobile). Missing
-// * from both is an invalid request.
+// ! A cookie-borne token is ambient, so it MUST clear the double-submit CSRF check; a body token is not.
 export function resolveRefreshToken(params: { request: Request; bodyToken?: string }): string {
   const cookieToken = params.request.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined;
 
@@ -77,11 +69,7 @@ export function resolveRefreshToken(params: { request: Request; bodyToken?: stri
   });
 }
 
-// * Signed double-submit CSRF: the CSRF cookie (only same-origin JS can read it) must equal the CSRF header the
-// * client copies into it, AND the cookie value must carry a valid server HMAC. The equality check stops a
-// * cross-site forgery that cannot read the cookie; the signature stops a sibling-subdomain cookie-injection where
-// * the attacker controls the value it writes — it cannot forge the HMAC without the secret. Constant-time compares
-// * avoid leaking match progress.
+// ! Equality alone is not enough: the HMAC is what stops a sibling-subdomain cookie injection.
 function assertCsrf(params: { request: Request }): void {
   const cookieToken = params.request.cookies?.[CSRF_TOKEN_COOKIE] as string | undefined;
   const header = params.request.headers[CSRF_TOKEN_HEADER];
@@ -97,8 +85,7 @@ function assertCsrf(params: { request: Request }): void {
   }
 }
 
-// * A CSRF token is `<random>.<hmac>`: a high-entropy value plus its HMAC-SHA256 under CSRF_HMAC_SECRET. base64url
-// * never contains '.', so the last separator cleanly splits value from signature.
+// * base64url never contains '.', so the separator splits value from signature unambiguously.
 function issueCsrfToken(): string {
   const value = randomBytes(CSRF_TOKEN_BYTES).toString('base64url');
 

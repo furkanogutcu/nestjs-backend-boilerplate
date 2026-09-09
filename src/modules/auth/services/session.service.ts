@@ -129,7 +129,7 @@ export class SessionService {
     });
 
     if (outcome.status === 'reuse') {
-      // * Revoke the family in its own committed transaction; throwing inside the read transaction would roll it back.
+      // ! Own transaction: throwing inside the read transaction would roll the revoke back.
       await this.revokeFamily({ familyId: outcome.familyId });
       await this.revocationService.revokeFamily({ familyId: outcome.familyId });
       this.onReuseDetected({ familyId: outcome.familyId, userId: outcome.userId });
@@ -160,9 +160,6 @@ export class SessionService {
     });
   }
 
-  // * Kill every live session of one user (all devices/families). Used after a password reset: the new password
-  // * must invalidate any session that may belong to whoever forced the reset. Each family is revoked in the
-  // * database and its denylist key written, exactly like reuse/family-cap eviction.
   async revokeAllForUser({ userId }: { userId: string }): Promise<void> {
     const active = await this.sessionsRepository.find({
       where: { userId, revokedAt: IsNull() },
@@ -190,9 +187,7 @@ export class SessionService {
     }
 
     if (session.revokedAt) {
-      // * A presented refresh token whose session is already revoked is reuse — mirror rotate()'s doctrine here so
-      // * both refresh entry points enforce it: kill the whole family (DB + denylist + socket kick), raise the reuse
-      // * alarm, and surface the reuse code, rather than a generic invalid-token error that hides the compromise.
+      // ! An already-revoked session is reuse, not a generic invalid token: kill the family and surface the reuse code.
       await this.revokeFamily({ familyId: session.familyId });
       await this.revocationService.revokeFamily({ familyId: session.familyId });
       this.onReuseDetected({ familyId: session.familyId, userId: session.userId });
@@ -210,13 +205,10 @@ export class SessionService {
     return { userId: session.userId, sessionId: session.id };
   }
 
-  // * Callers: reuse detection and family-cap eviction — both terminal for the family. Each caller pairs this
-  // * database write with a RevocationService call so the family's access tokens are denylisted too.
   private async revokeFamily({ familyId }: { familyId: string }): Promise<void> {
     await this.sessionsRepository.update({ familyId, revokedAt: IsNull() }, { revokedAt: this.clock.date() });
   }
 
-  // * Bound the number of concurrent devices: when issuing past the cap, evict the least-recently-active families.
   private async enforceFamilyCap({ userId }: { userId: string }): Promise<void> {
     const activeSessions = await this.sessionsRepository.find({
       where: { userId, revokedAt: IsNull(), expiresAt: MoreThan(this.clock.date()) },

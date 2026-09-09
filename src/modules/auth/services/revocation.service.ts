@@ -27,10 +27,7 @@ export class RevocationService {
     private readonly clock: ClockService,
   ) {}
 
-  // ! The denylist key is what actually stops an already-issued access token, so this write must not be
-  // ! swallowed: a lost write leaves a revoked session's token honoured until JWT_ACCESS_TTL_SECONDS expiry.
-  // ! Revocation is a cold path (logout, reuse detection, password reset), so retrying and then failing the
-  // ! caller is the right trade — never trade this durability back for latency.
+  // ! Never swallow this write: a lost denylist key leaves a revoked token honoured until its own expiry.
   async revokeSession({ sessionId }: { sessionId: string }): Promise<void> {
     await this.write(this.key({ kind: 'sid', id: sessionId }));
   }
@@ -53,8 +50,6 @@ export class RevocationService {
     }
   }
 
-  // * Short, jittered retries: a Redis blip is usually transient, and the caller is already off the hot path.
-  // * Setting an existing key again just refreshes its TTL, so retrying is safe.
   private async write(key: string): Promise<void> {
     try {
       await exponentialRetry({

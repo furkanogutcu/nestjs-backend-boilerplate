@@ -35,8 +35,7 @@ export class PasswordService implements OnModuleInit {
   private readonly logger = new Logger(PasswordService.name);
   private readonly emailVerificationPrefix = appConfig.redis.keyPrefixes.emailVerification;
   private readonly passwordResetPrefix = appConfig.redis.keyPrefixes.passwordReset;
-  // * Precomputed argon2 hash to verify against on a login miss, so an unknown email costs the same time as a wrong
-  // * password for a real one — no timing oracle for address enumeration.
+  // ! Verified against on a login miss, so an unknown email costs the same time as a wrong password.
   private dummyHash!: string;
 
   constructor(
@@ -110,12 +109,9 @@ export class PasswordService implements OnModuleInit {
   }): Promise<ICredentialsResult> {
     const user = await this.usersRepository.findOne({ where: { email } });
 
-    // * Constant-time miss: verify against the dummy hash so a nonexistent/passwordless account is indistinguishable
-    // * from a wrong password, then fail with the same generic error either way.
     if (!user || !user.passwordHash) {
       await verify(this.dummyHash, password);
-      // * No subject id: the account may not exist, and recording the attempted address here would turn the
-      // * audit log into a list of guessed emails.
+      // ! No subject id: recording the attempted address would turn the audit log into a list of guessed emails.
       await this.auditService.record({
         action: AuditAction.AuthLoginFailed,
         metadata: { reason: 'unknown_account_or_passwordless' },
@@ -160,8 +156,7 @@ export class PasswordService implements OnModuleInit {
     return { user, ...tokens };
   }
 
-  // ! Runs only after the password has been proved, so an attacker cannot use the MFA responses to learn
-  // ! whether an account exists or which accounts are administrative.
+  // ! Only after the password is proved, or the MFA responses leak which accounts exist and which are administrative.
   private async enforceMfa({ userId, mfaCode }: { userId: string; mfaCode?: string }): Promise<void> {
     const hasRole = await this.userRolesService.hasAnyRole({ userId });
     const requirement = await this.mfaService.requirementFor({ userId, hasRole });
@@ -170,8 +165,7 @@ export class PasswordService implements OnModuleInit {
       return;
     }
 
-    // ! An administrative account that never finished enrolment must not fall back to password-only: refuse
-    // ! the login instead, and let an operator re-issue it with `admin:create`.
+    // ! An administrative account with unfinished enrolment must never fall back to password-only.
     if (!requirement.enrolled) {
       throw new AppForbiddenException({
         code: ExceptionCode.MfaEnrolmentRequired,
@@ -260,10 +254,8 @@ export class PasswordService implements OnModuleInit {
     }
 
     const passwordHash = await hash(password);
-    // * Clears the handover flag from `admin:create`: completing a reset is a deliberate password change.
     await this.usersRepository.update({ id: userId }, { passwordHash, mustChangePassword: false });
-    // * A reset may be the response to a compromise: kill every existing session so a stolen refresh token cannot
-    // * outlive the password it was issued under.
+    // ! A reset may answer a compromise: no session may outlive the password it was issued under.
     await this.sessionService.revokeAllForUser({ userId });
 
     await this.auditService.record({
@@ -296,8 +288,6 @@ export class PasswordService implements OnModuleInit {
     });
   }
 
-  // * Fire-and-forget enqueue: a failed queue push must not fail the request (the account already exists and the
-  // * user can trigger a resend), so it is logged, not thrown. Actual delivery + retries happen in the mail worker.
   private sendMail({
     to,
     subject,
@@ -337,9 +327,7 @@ export class PasswordService implements OnModuleInit {
     ttlSeconds: number;
   }): Promise<string> {
     const token = randomBytes(bytes).toString('base64url');
-    // * Store the SHA-256 of the token, never the raw token — mirrors the refresh-token at-rest doctrine, so a Redis
-    // * read/backup leak yields only hashes, not usable links. No pepper: a 256-bit random token is already beyond
-    // * brute force, so the hash alone (non-invertible, no rainbow table) suffices.
+    // ! Store the hash, never the raw token: a Redis leak must not yield usable reset links.
     await this.redisService.getClient().set(CacheKey.join(prefix, this.hashToken(token)), userId, 'EX', ttlSeconds);
 
     return token;

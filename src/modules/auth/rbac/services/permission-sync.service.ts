@@ -24,8 +24,6 @@ export class PermissionSyncService implements OnApplicationBootstrap {
     await this.sync();
   }
 
-  // * Projects the Permission enum onto the database so the admin API can offer a pick list, then keeps the
-  // * superuser role holding everything. Idempotent: safe on every boot and on every instance.
   async sync(): Promise<void> {
     await this.databaseService.runInTransaction(async (manager) => {
       const codeNames = Object.values(Permission);
@@ -70,7 +68,6 @@ export class PermissionSyncService implements OnApplicationBootstrap {
       this.logger.log(`Created the ${SUPERUSER_ROLE_NAME} role`);
     }
 
-    // * Re-granted every boot so a permission added in code is never missing from the one role that must have it.
     await manager.upsert(
       RolePermission,
       codeNames.map((permissionName) => ({ roleId: role.id, permissionName })),

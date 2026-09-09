@@ -24,8 +24,7 @@ export class OAuthAccount {
   @Column({ type: 'varchar' })
   providerUserId!: string;
 
-  // * Encrypted at rest with a ROW-BOUND AAD by OAuthAccountSubscriber (not a column transformer), so a ciphertext
-  // * relocated to another row cannot be decrypted. Plain varchar here; the subscriber owns encrypt/decrypt.
+  // ! Encrypted by OAuthAccountSubscriber under a row-bound AAD — do not add a column transformer here.
   @Column({ type: 'varchar', nullable: true })
   email!: string | null;
 

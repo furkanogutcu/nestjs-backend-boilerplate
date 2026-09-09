@@ -80,7 +80,7 @@ export class TokenService {
   private toClaims(payload: JWTPayload): IAccessTokenClaims {
     const { sub, sid, fid, exp } = payload;
 
-    // * A token without an expiry is never issued here; accepting one would create an unbounded credential.
+    // ! Reject a token with no `exp`: honouring one would create an unbounded credential.
     if (!sub || typeof sid !== 'string' || typeof fid !== 'string' || typeof exp !== 'number') {
       throw new AppUnauthorizedException();
     }

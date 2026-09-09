@@ -16,8 +16,7 @@ export class RolePermission {
   @PrimaryColumn({ type: 'varchar', length: 100 })
   permissionName!: string;
 
-  // ! RESTRICT, not CASCADE: a permission is never deleted while a role still grants it — the sync retires it
-  // ! instead. A cascade here would silently narrow every role that held it.
+  // ! RESTRICT, not CASCADE: a cascade would silently narrow every role that held the permission.
   @ManyToOne(() => PermissionRecord, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'permission_name' })
   permission!: PermissionRecord;

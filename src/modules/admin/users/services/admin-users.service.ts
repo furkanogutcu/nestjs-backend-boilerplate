@@ -44,8 +44,7 @@ export class AdminUsersService {
     const suspensionFilter: FindOptionsWhere<User> | undefined =
       suspended === undefined ? undefined : { suspendedAt: suspended ? Not(IsNull()) : IsNull() };
 
-    // * A search produces one where-clause per searchable column (OR); each has to carry the suspension filter
-    // * too, otherwise the filter would apply to the first clause only.
+    // ! Search ORs one clause per column, so every clause must repeat the suspension filter.
     const where = search
       ? search.map((clause) => ({ ...clause, ...suspensionFilter }))
       : suspensionFilter && [suspensionFilter];
@@ -63,8 +62,7 @@ export class AdminUsersService {
     return { user, roles: await this.rolesOf(userId) };
   }
 
-  // ! Suspending must also end the sessions that already exist: leaving them alive would let a suspended
-  // ! account keep working until its refresh token expired.
+  // ! Suspending must also end existing sessions, or the account keeps working until its refresh token expires.
   async suspend(params: { userId: string; actorUserId: string; reason?: string }): Promise<void> {
     const { userId, actorUserId, reason } = params;
     const result = await this.users.update({ id: userId, suspendedAt: IsNull() }, { suspendedAt: this.clock.date() });
@@ -115,8 +113,6 @@ export class AdminUsersService {
     await this.requireUser(userId);
     const role = await this.requireRole(roleId);
 
-    // * The grant and its audit record share a transaction: a role that was granted without a trace, or traced
-    // * without being granted, is worse than a failed request.
     await this.databaseService.runInTransaction(async (manager) => {
       await manager.upsert(UserRole, { userId, roleId }, ['userId', 'roleId']);
       await this.auditService.record({

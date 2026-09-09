@@ -15,8 +15,6 @@ export const accountDeletionStatusResponseSchema = z.object({
 
 export type AccountDeletionStatusResponse = z.infer<typeof accountDeletionStatusResponseSchema>;
 
-// * The export is a personal-data dump whose shape follows the account, not a stable API contract, so it is
-// * described loosely on purpose — pinning every field here would make the schema a second place to maintain.
 export const dataExportResponseSchema = z
   .object({
     exported_at: z.string().describe('When the export was produced'),

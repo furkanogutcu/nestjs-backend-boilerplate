@@ -55,8 +55,7 @@ export class PostsService {
     });
   }
 
-  // * Read-through cache on the public read path only; a draft is never cached because only its author can see
-  // * it and the entry would be a per-user cache masquerading as a shared one.
+  // ! Public reads only: caching a draft would make a per-user entry masquerade as a shared one.
   async getPublishedBySlug({ slug }: { slug: string }): Promise<Post> {
     const cached = await this.cacheService.get<Post>({ key: this.slugKey(slug) });
 
@@ -119,7 +118,6 @@ export class PostsService {
     await this.deleteCover(post);
   }
 
-  // * Moderation path: no ownership check, but a permission check upstream and an audit record here.
   async removeAsModerator({ postId, actorUserId }: { postId: string; actorUserId: string }): Promise<void> {
     const post = await this.posts.findOne({ where: { id: postId } });
 
@@ -146,7 +144,6 @@ export class PostsService {
 
     const signed = await this.storageService.createUploadUrl({
       key,
-      // * The client tells us what it is about to send; the signature makes the claim binding.
       contentType: POST_COVER_CONTENT_TYPES[0],
       contentLength: POST_COVER_MAX_BYTES,
       allowedContentTypes: POST_COVER_CONTENT_TYPES,
@@ -171,8 +168,7 @@ export class PostsService {
       throw new AppNotFoundException({ resourceName: 'Post' });
     }
 
-    // ! Not found vs forbidden: telling a stranger that a draft exists is itself a leak, so ownership failures
-    // ! on a draft look identical to a missing post.
+    // ! Not found, not forbidden: telling a stranger that a draft exists is itself a leak.
     if (post.authorId !== authorId) {
       if (post.publishedAt) {
         throw new AppForbiddenException({ message: 'You can only modify your own posts.' });
@@ -194,8 +190,7 @@ export class PostsService {
     }
   }
 
-  // ! The cache round-trips through JSON, which turns every Date into a string. Callers type the result as a
-  // ! Post and call Date methods on it, so the timestamps have to be rebuilt or the first cache hit throws.
+  // ! The cache round-trips through JSON, so Dates come back as strings and must be rebuilt.
   private reviveDates(post: Post): Post {
     return {
       ...post,

@@ -20,7 +20,7 @@ export class GoogleTokenVerifier {
         throw this.invalidToken();
       }
 
-      // * Defence in depth: verifyIdToken pins `aud`; rejecting an `azp` outside the trusted client set closes a multi-audience token-substitution gap.
+      // ! verifyIdToken pins `aud`; this `azp` check closes the multi-audience token-substitution gap.
       if (payload.azp && !env.GOOGLE_OAUTH_CLIENT_IDS.includes(payload.azp)) {
         throw this.invalidToken();
       }

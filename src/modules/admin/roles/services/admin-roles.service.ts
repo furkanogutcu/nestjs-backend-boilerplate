@@ -33,8 +33,6 @@ export class AdminRolesService {
     private readonly auditService: AuditService,
   ) {}
 
-  // * Only permissions still declared in code can be granted; retired ones stay on existing roles until an
-  // * operator edits them, but never appear as an option.
   async listPermissions(): Promise<PermissionRecord[]> {
     return await this.permissions.find({ where: { retiredAt: IsNull() }, order: { name: 'ASC' } });
   }
@@ -94,8 +92,7 @@ export class AdminRolesService {
     const { roleId, name, description, permissions, actorUserId } = params;
     const role = await this.requireRole(roleId);
 
-    // ! A system role is the way back in when role data is misconfigured; renaming it or narrowing its
-    // ! permissions from the same API that broke the configuration would remove that last resort.
+    // ! A system role is the last way back in; the API that broke the configuration must not be able to narrow it.
     if (role.isSystem) {
       throw new AppForbiddenException({ message: 'System roles cannot be modified.' });
     }
@@ -178,8 +175,7 @@ export class AdminRolesService {
     }
   }
 
-  // ! Every holder's cached permission set has to be dropped, otherwise a narrowed role keeps working for up
-  // ! to the cache TTL — which is exactly the window an operator is trying to close.
+  // ! Drop every holder's cached set, or a narrowed role keeps working for the whole cache TTL.
   private async invalidateHolders({ roleId }: { roleId: string }): Promise<void> {
     const holders = await this.userRoles.find({ where: { roleId }, select: { userId: true } });
 

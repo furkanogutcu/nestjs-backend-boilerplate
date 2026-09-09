@@ -25,7 +25,6 @@ export class PlayGamesVerifier {
     clientSecret: env.PLAY_GAMES_OAUTH_CLIENT_SECRET,
   });
 
-  // * No id_token (unlike OIDC): exchange the client's one-time server auth code server-to-server for an access token and resolve the player id. The code is single-use at Google, so it doubles as the replay guard.
   async verify({ serverAuthCode }: { serverAuthCode: string }): Promise<IOAuthIdentity> {
     try {
       const { tokens } = await this.client.getToken(serverAuthCode);
@@ -58,7 +57,7 @@ export class PlayGamesVerifier {
       const response = await fetch(PLAY_GAMES_PLAYER_URL, {
         headers: { Authorization: `Bearer ${accessToken}` },
         signal: controller.signal,
-        // * Never follow a redirect off the pinned Google endpoint (a redirect to an internal address would be an SSRF primitive).
+        // ! Never follow a redirect off the pinned endpoint — it would be an SSRF primitive.
         redirect: 'error',
       });
 

@@ -33,15 +33,12 @@ export class UserPermissionsService {
     return new Set(granted);
   }
 
-  // * Called whenever a user's roles change, or a role's permissions do — otherwise a revoked grant would keep
-  // * working for up to the cache TTL.
   async invalidate({ userId }: { userId: string }): Promise<void> {
     await this.cacheService.delete({ key: this.key(userId) });
   }
 
   private async load(userId: string): Promise<Permission[]> {
-    // * Retired permissions are filtered out here rather than at grant time, so a permission that leaves the
-    // * code stops being honoured immediately without rewriting anybody's roles.
+    // * Filtered at read time, so a permission leaving the code stops being honoured without rewriting any role.
     const rows = await this.dataSource.query<{ permission_name: Permission }[]>(
       `SELECT DISTINCT rp.permission_name
          FROM user_roles ur

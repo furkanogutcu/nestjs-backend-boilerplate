@@ -33,8 +33,7 @@ import {
 } from './schemas/post.response';
 import { PostsService } from './services/posts.service';
 
-// * The worked example for a domain module: public reads, owner-only writes, pagination and search, a cached
-// * read path, an idempotent create, a signed upload, and a moderation route behind a permission.
+// * The worked example for a domain module — see ARCHITECTURE "Domain module template".
 @ApiTags('Posts')
 @Controller()
 export class PostsController {

@@ -5,8 +5,7 @@ export const tokenPairResponseSchema = z.object({
     example:
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMTkyM2E0NS1iNmM3LTc4ZDktMGExYi0yYzNkNGU1ZjY3ODkiLCJzaWQiOiIwMTkyM2E0Ni1mZWRjLTcwMDAtOWE4Yi03YzZkNWU0ZjNhMmIiLCJpYXQiOjE3MTcwMDAwMDAsImV4cCI6MTcxNzAwMDkwMH0.Kq2v9Zt7t0n0Q4j7N4o3yB1xWcF8m6lQpYx0t3rZ8aU',
   }),
-  // * Present for mobile clients (Bearer/body transport). Web clients (X-Client-Type: web) receive it as an
-  // * HttpOnly cookie instead, so it is omitted from the body — hence optional.
+  // * Omitted for web clients — they receive it as an HttpOnly cookie instead.
   refresh_token: z
     .string()
     .optional()

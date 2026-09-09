@@ -3,8 +3,6 @@ import { z } from 'zod';
 
 export const refreshRequestSchema = z
   .object({
-    // * Optional: mobile clients send the token here; web clients send it as the refresh cookie (with a CSRF
-    // * header) and omit the body field.
     refresh_token: z
       .string()
       .min(1)
