@@ -39,27 +39,22 @@ describe('RevocationService', () => {
     expect(redis.set).toHaveBeenCalledWith(expect.stringContaining('fid:family-1'), '1', 'EX', 900);
   });
 
-  it('swallows a Redis write failure so revocation stays best-effort', async () => {
+  it('throws once the denylist write has exhausted its retries', async () => {
     const errorLog = jest.spyOn(Logger.prototype, 'error').mockImplementation();
     redis.set.mockRejectedValue(new Error('redis down'));
 
-    await expect(service.revokeSession({ sessionId: 'session-1' })).resolves.toBeUndefined();
+    await expect(service.revokeSession({ sessionId: 'session-1' })).rejects.toBeInstanceOf(
+      AppServiceUnavailableException,
+    );
+    expect(redis.set).toHaveBeenCalledTimes(3);
     expect(errorLog).toHaveBeenCalled();
   });
 
-  it('writes the same denylist key on the durable reconcile path', async () => {
-    await service.reconcileSession({ sessionId: 'session-1' });
-    await service.reconcileFamily({ familyId: 'family-1' });
+  it('succeeds without throwing when a retry recovers the write', async () => {
+    redis.set.mockRejectedValueOnce(new Error('redis blip')).mockResolvedValue('OK');
 
-    expect(redis.set).toHaveBeenCalledWith(expect.stringContaining('sid:session-1'), '1', 'EX', 900);
-    expect(redis.set).toHaveBeenCalledWith(expect.stringContaining('fid:family-1'), '1', 'EX', 900);
-  });
-
-  it('rethrows a Redis failure on the reconcile path (so the consumer redelivers), unlike the best-effort path', async () => {
-    redis.set.mockRejectedValue(new Error('redis down'));
-
-    await expect(service.reconcileSession({ sessionId: 'session-1' })).rejects.toThrow('redis down');
-    await expect(service.reconcileFamily({ familyId: 'family-1' })).rejects.toThrow('redis down');
+    await expect(service.revokeSession({ sessionId: 'session-1' })).resolves.toBeUndefined();
+    expect(redis.set).toHaveBeenCalledTimes(2);
   });
 
   it('reports revoked when the denylist has a matching key', async () => {

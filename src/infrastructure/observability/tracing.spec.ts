@@ -8,7 +8,7 @@ const mockEnv = {
   OTEL_SERVICE_NAME: 'app',
   OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel-collector:4318',
   OTEL_TRACES_SAMPLER_RATIO: 0.25,
-  SENTRY_RELEASE: undefined as string | undefined,
+  SERVICE_RELEASE: 'unknown',
   NODE_ENV: 'test',
 };
 
@@ -24,6 +24,8 @@ const diagErrorMock = jest.fn();
 let capturedHttpOptions: { ignoreIncomingRequestHook?: (req: IncomingMessage) => boolean } = {};
 
 const otlpExporterMock = jest.fn();
+const otlpMetricExporterMock = jest.fn();
+const metricReaderMock = jest.fn();
 const consoleExporterMock = jest.fn();
 const resourceFromAttributesMock = jest.fn().mockReturnValue({ resource: true });
 
@@ -44,6 +46,14 @@ jest.mock('@opentelemetry/core', () => ({
 
 jest.mock('@opentelemetry/exporter-trace-otlp-proto', () => ({
   OTLPTraceExporter: jest.fn().mockImplementation((opts: unknown) => otlpExporterMock(opts)),
+}));
+
+jest.mock('@opentelemetry/exporter-metrics-otlp-proto', () => ({
+  OTLPMetricExporter: jest.fn().mockImplementation((opts: unknown) => otlpMetricExporterMock(opts)),
+}));
+
+jest.mock('@opentelemetry/sdk-metrics', () => ({
+  PeriodicExportingMetricReader: jest.fn().mockImplementation((opts: unknown) => metricReaderMock(opts)),
 }));
 
 jest.mock('@opentelemetry/instrumentation-express', () => ({ ExpressInstrumentation: jest.fn() }));
@@ -95,7 +105,7 @@ describe('tracing', () => {
   beforeEach(() => {
     mockEnv.OTEL_ENABLED = false;
     mockEnv.OTEL_DEBUG = false;
-    mockEnv.SENTRY_RELEASE = undefined;
+    mockEnv.SERVICE_RELEASE = 'unknown';
     mockEnv.NODE_ENV = 'test';
     shutdownMock.mockResolvedValue(undefined);
     capturedHttpOptions = {};
@@ -155,6 +165,15 @@ describe('tracing', () => {
       expect(setLoggerMock).not.toHaveBeenCalled();
     });
 
+    it('exports metrics to the OTLP metrics endpoint on a fixed interval', () => {
+      mockEnv.OTEL_ENABLED = true;
+
+      loadTracing();
+
+      expect(otlpMetricExporterMock).toHaveBeenCalledWith({ url: 'http://otel-collector:4318/v1/metrics' });
+      expect(metricReaderMock).toHaveBeenCalledWith(expect.objectContaining({ exportIntervalMillis: 15000 }));
+    });
+
     it('uses the console exporter and a debug logger in debug mode', () => {
       mockEnv.OTEL_DEBUG = true;
 
@@ -165,9 +184,9 @@ describe('tracing', () => {
       expect(setLoggerMock).toHaveBeenCalledTimes(1);
     });
 
-    it('falls back to an "unknown" service version when SENTRY_RELEASE is unset', () => {
+    it('falls back to an "unknown" service version when SERVICE_RELEASE is unset', () => {
       mockEnv.OTEL_ENABLED = true;
-      mockEnv.SENTRY_RELEASE = undefined;
+      mockEnv.SERVICE_RELEASE = 'unknown';
 
       loadTracing();
 
@@ -176,9 +195,9 @@ describe('tracing', () => {
       );
     });
 
-    it('uses SENTRY_RELEASE as the service version when present', () => {
+    it('uses SERVICE_RELEASE as the service version when present', () => {
       mockEnv.OTEL_ENABLED = true;
-      mockEnv.SENTRY_RELEASE = '1.2.3';
+      mockEnv.SERVICE_RELEASE = '1.2.3';
 
       loadTracing();
 
@@ -194,12 +213,9 @@ describe('tracing', () => {
       return capturedHttpOptions.ignoreIncomingRequestHook!({ url } as IncomingMessage);
     }
 
-    it.each([['/health'], ['/metrics'], ['/api/v1/health'], ['/api/v1/metrics'], ['/api/v1/health/ready']])(
-      'ignores the operational path %s',
-      (url) => {
-        expect(hookFor(url)).toBe(true);
-      },
-    );
+    it.each([['/health'], ['/api/v1/health'], ['/api/v1/health/ready']])('ignores the operational path %s', (url) => {
+      expect(hookFor(url)).toBe(true);
+    });
 
     it.each([['/api/v1/orders'], ['/'], ['/users/123']])('traces the business path %s', (url) => {
       expect(hookFor(url)).toBe(false);

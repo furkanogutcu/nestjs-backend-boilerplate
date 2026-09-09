@@ -6,6 +6,7 @@ import { ClockService } from '@infrastructure/clock/clock.service';
 import { RedisService } from '@infrastructure/redis/redis.service';
 import { AppServiceUnavailableException } from '@shared/exceptions/service-unavailable.exception';
 import { CacheKey } from '@shared/utils/cache-key.util';
+import { exponentialRetry } from '@shared/utils/exponential-retry.util';
 
 import { SessionsRepository } from '../repositories/sessions.repository';
 
@@ -26,26 +27,15 @@ export class RevocationService {
     private readonly clock: ClockService,
   ) {}
 
-  // * Inline (request-path) revocation: writes the denylist key best-effort. A lost write no longer means a revoked
-  // * token stays valid — the SessionRevoked outbox event drives reconcileSession/reconcileFamily (below) on a
-  // * separate consumer, which retries until the key exists. So here we favour latency (never fail the caller's
-  // * logout/rotate on a Redis blip) and lean on that consumer for durability.
+  // ! The denylist key is what actually stops an already-issued access token, so this write must not be
+  // ! swallowed: a lost write leaves a revoked session's token honoured until JWT_ACCESS_TTL_SECONDS expiry.
+  // ! Revocation is a cold path (logout, reuse detection, password reset), so retrying and then failing the
+  // ! caller is the right trade — never trade this durability back for latency.
   async revokeSession({ sessionId }: { sessionId: string }): Promise<void> {
-    await this.writeBestEffort(this.key({ kind: 'sid', id: sessionId }));
-  }
-
-  async revokeFamily({ familyId }: { familyId: string }): Promise<void> {
-    await this.writeBestEffort(this.key({ kind: 'fid', id: familyId }));
-  }
-
-  // * Durable reconcile path, driven by the SessionRevoked consumer off the outbox event. These MUST throw on a
-  // * write failure so the consumer rethrows and Kafka redelivers — that redelivery is what makes revocation
-  // * durable against a lost inline write. Idempotent: re-setting an existing key just refreshes its TTL.
-  async reconcileSession({ sessionId }: { sessionId: string }): Promise<void> {
     await this.write(this.key({ kind: 'sid', id: sessionId }));
   }
 
-  async reconcileFamily({ familyId }: { familyId: string }): Promise<void> {
+  async revokeFamily({ familyId }: { familyId: string }): Promise<void> {
     await this.write(this.key({ kind: 'fid', id: familyId }));
   }
 
@@ -63,19 +53,20 @@ export class RevocationService {
     }
   }
 
-  // * Fail-loud primitive: propagates the Redis failure so the reconcile consumer can redeliver. Inline callers wrap
-  // * it in writeBestEffort; the consumer path (reconcile*) lets it throw.
+  // * Short, jittered retries: a Redis blip is usually transient, and the caller is already off the hot path.
+  // * Setting an existing key again just refreshes its TTL, so retrying is safe.
   private async write(key: string): Promise<void> {
-    await this.redisService.getClient().set(key, '1', 'EX', this.ttlSeconds);
-  }
-
-  private async writeBestEffort(key: string): Promise<void> {
     try {
-      await this.write(key);
+      await exponentialRetry({
+        fn: async () => await this.redisService.getClient().set(key, '1', 'EX', this.ttlSeconds),
+        maxAttempts: 3,
+        baseDelayMs: 50,
+        maxDelayMs: 200,
+      });
     } catch (error) {
-      this.logger.error(
-        `Failed to write revocation denylist key (best-effort; reconcile consumer will retry): ${this.toMessage(error)}`,
-      );
+      this.logger.error(`Failed to write revocation denylist key: ${this.toMessage(error)}`);
+
+      throw new AppServiceUnavailableException();
     }
   }
 

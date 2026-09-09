@@ -1,4 +1,5 @@
-import './instrument';
+// * Must load before any instrumented module so OpenTelemetry patches them first.
+import './infrastructure/observability/tracing';
 import './database/extensions';
 
 import { NestFactory } from '@nestjs/core';
@@ -10,7 +11,6 @@ import { Logger } from 'nestjs-pino';
 import { versioningConfig } from '@config/app.config';
 import { env } from '@config/env.config';
 import { setupDocs } from '@infrastructure/docs/setup-docs';
-import { RedisIoAdapter } from '@infrastructure/realtime/gateway/redis-io.adapter';
 import { contextBuilder } from '@shared/middlewares/context-builder.middleware';
 
 import { AppModule } from './app.module';
@@ -43,12 +43,6 @@ async function bootstrap(): Promise<void> {
   );
 
   app.enableVersioning(versioningConfig);
-
-  // * Attach the Redis-backed socket.io adapter so the realtime gateway shares the HTTP server and fans out
-  // * across instances. Only under the socketio driver — the log driver (tests/CI) binds no socket.
-  if (env.REALTIME_DRIVER === 'socketio') {
-    app.useWebSocketAdapter(new RedisIoAdapter(app));
-  }
 
   setupDocs(app);
 

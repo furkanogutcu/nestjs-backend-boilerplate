@@ -1,9 +1,9 @@
 services:
-  timescaledb:
+  postgres:
     build:
       context: .
-      dockerfile: docker/timescaledb/Dockerfile
-    image: ${APP_NAME}-timescaledb:local
+      dockerfile: docker/postgres/Dockerfile
+    image: ${APP_NAME}-postgres:local
     container_name: ${APP_NAME}-db
     restart: unless-stopped
 
@@ -21,10 +21,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
 
-      TS_TUNE_MEMORY: ${DB_MEMORY_LIMIT}
-      TS_TUNE_NUM_CPUS: ${DB_CPU_LIMIT}
-      TS_TUNE_WAL_COMPRESSION: 'on'
-
       PGBOUNCER_AUTH_PASSWORD: ${PGBOUNCER_AUTH_PASSWORD}
       POSTGRES_EXPORTER_PASSWORD: ${POSTGRES_EXPORTER_PASSWORD}
 
@@ -35,8 +31,8 @@ services:
       BACKUP_ENCRYPTION_PASSPHRASE: ${BACKUP_ENCRYPTION_PASSPHRASE}
 
     volumes:
-      - timescaledb_data:/var/lib/postgresql/data
-      - timescaledb_run:/var/run/postgresql
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_run:/var/run/postgresql
       - pgbackrest_log:/var/log/pgbackrest
       - pgbackrest_spool:/var/spool/pgbackrest
 
@@ -47,7 +43,7 @@ services:
 
     command: >
       postgres
-      -c shared_preload_libraries=timescaledb,pg_stat_statements
+      -c shared_preload_libraries=pg_stat_statements
       -c pg_stat_statements.track=all
       -c pg_stat_statements.max=10000
       -c max_connections=200
@@ -83,7 +79,7 @@ services:
     container_name: ${APP_NAME}-pgbouncer
     restart: unless-stopped
     depends_on:
-      timescaledb:
+      postgres:
         condition: service_healthy
 
     deploy:
@@ -127,7 +123,7 @@ services:
     container_name: ${APP_NAME}-pgbackrest
     restart: unless-stopped
     depends_on:
-      timescaledb:
+      postgres:
         condition: service_healthy
 
     environment:
@@ -145,8 +141,8 @@ services:
     volumes:
       - ./docker/pgbackrest/pgbackrest.conf.template:/etc/pgbackrest/pgbackrest.conf.template:ro
       - ./docker/pgbackrest/entrypoint.sh:/usr/local/bin/render-pgbackrest.sh:ro
-      - timescaledb_data:/var/lib/postgresql/data:ro
-      - timescaledb_run:/var/run/postgresql
+      - postgres_data:/var/lib/postgresql/data:ro
+      - postgres_run:/var/run/postgresql
       - pgbackrest_log:/var/log/pgbackrest
       - pgbackrest_spool:/var/spool/pgbackrest
 
@@ -166,11 +162,11 @@ services:
     container_name: ${APP_NAME}-postgres-exporter
     restart: unless-stopped
     depends_on:
-      timescaledb:
+      postgres:
         condition: service_healthy
 
     environment:
-      DATA_SOURCE_NAME: 'postgresql://exporter:${POSTGRES_EXPORTER_PASSWORD}@timescaledb:5432/${POSTGRES_DB}?sslmode=disable'
+      DATA_SOURCE_NAME: 'postgresql://exporter:${POSTGRES_EXPORTER_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable'
       PG_EXPORTER_AUTO_DISCOVER_DATABASES: 'true'
       PG_EXPORTER_EXCLUDE_DATABASES: 'template0,template1'
 
@@ -252,100 +248,12 @@ services:
         max-size: '20m'
         max-file: '3'
 
-  kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    container_name: ${APP_NAME}-kafka
-    hostname: ${APP_NAME}-kafka
-    restart: unless-stopped
-    networks:
-      - dokploy-network
-    volumes:
-      - kafka_data:/var/lib/kafka/data
-
-    ports:
-      - '10.0.0.1:${VPN_KAFKA_PORT}:${VPN_KAFKA_PORT}'
-
-    deploy:
-      resources:
-        limits:
-          memory: ${KAFKA_MEMORY_LIMIT}
-        reservations:
-          memory: ${KAFKA_MEMORY_RESERVATION}
-
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@${APP_NAME}-kafka:9093'
-      CLUSTER_ID: '${KAFKA_CLUSTER_ID}'
-
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-
-      KAFKA_HEAP_OPTS: '${KAFKA_HEAP_OPTS}'
-
-      KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:${VPN_KAFKA_PORT}'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://${APP_NAME}-kafka:9092,EXTERNAL://10.0.0.1:${VPN_KAFKA_PORT}'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT'
-
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
-
-      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: 'PLAIN'
-      KAFKA_SASL_ENABLED_MECHANISMS: 'PLAIN'
-      KAFKA_OPTS: '-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf'
-
-      KAFKA_USERNAME: '${KAFKA_USERNAME}'
-      KAFKA_PASSWORD: '${KAFKA_PASSWORD}'
-
-    command: >
-      bash -c "echo 'KafkaServer {
-      org.apache.kafka.common.security.plain.PlainLoginModule required
-      user_${KAFKA_USERNAME}=\"${KAFKA_PASSWORD}\";
-      };' > /etc/kafka/kafka_server_jaas.conf && /etc/confluent/docker/run"
-
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '50m'
-        max-file: '3'
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: ${APP_NAME}-kafka-ui
-    restart: unless-stopped
-    depends_on:
-      - kafka
-
-    ports:
-      - '10.0.0.1:${VPN_KAFKA_UI_PORT}:8080'
-
-    networks:
-      - dokploy-network
-
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-
-    environment:
-      AUTH_TYPE: 'LOGIN_FORM'
-      SPRING_SECURITY_USER_NAME: '${KAFKA_UI_USERNAME}'
-      SPRING_SECURITY_USER_PASSWORD: '${KAFKA_UI_PASSWORD}'
-
-      KAFKA_CLUSTERS_0_NAME: '${APP_NAME}-PROD'
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: '${APP_NAME}-kafka:9092'
-      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: 'SASL_PLAINTEXT'
-      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: 'PLAIN'
-      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_USERNAME}" password="${KAFKA_PASSWORD}";'
-
 volumes:
-  timescaledb_data:
-  timescaledb_run:
+  postgres_data:
+  postgres_run:
   pgbackrest_log:
   pgbackrest_spool:
   redis_data:
-  kafka_data:
 
 networks:
   dokploy-network:

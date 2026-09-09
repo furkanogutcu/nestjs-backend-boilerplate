@@ -1,12 +1,10 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { TypeORMError } from 'typeorm';
 import z from 'zod';
 
 import { getCurrentTraceIds } from '@infrastructure/observability/otel.helpers';
 
-import { SENSITIVE_HEADER_KEYS } from '../../constants/sensitive-headers.constant';
 import { AppException } from '../app.exception';
 import { ExceptionCode } from '../enums/exception-code.enum';
 import { IErrorResponse } from '../interfaces/error-response.interface';
@@ -23,7 +21,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
 
     if (response.headersSent) {
       return;
@@ -36,16 +33,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const appException = this.toAppException(exception);
 
       if (appException instanceof AppInternalException) {
-        this.logger.error(appException);
-        this.captureToSentry({ exception: appException, request, requestId });
+        // * Log the wrapped cause, not the generic wrapper: the wrapper's message and code are masked
+        // * placeholders, so logging it alone would discard the only record of what actually failed.
+        this.logger.error(appException.originalError ?? appException);
       }
 
       response.status(appException.httpCode).json(this.toBody({ exception: appException, requestId, traceId }));
     } catch (error) {
       const fallback = new AppInternalException({ error: error instanceof Error ? error : undefined });
 
-      this.logger.error(fallback);
-      this.captureToSentry({ exception: fallback, request, requestId });
+      this.logger.error(fallback.originalError ?? fallback);
 
       response.status(fallback.httpCode).json(this.toBody({ exception: fallback, requestId, traceId }));
     }
@@ -94,7 +91,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // * Internal faults must never leak their code, message, or details to the client — those can carry
     // * dependency names, key ids, or stored-data shapes. The real values are preserved for the operator via
-    // * the logger.error + Sentry capture in catch(); the client gets only a generic envelope plus the
+    // * the logger.error in catch(); the client gets only a generic envelope plus the
     // * correlation ids below. Masked in every environment, not just production, so non-prod deployments and
     // * any internet-reachable preview never disclose internals.
     if (exception instanceof AppInternalException) {
@@ -122,43 +119,5 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private getTraceId(): string | undefined {
     return getCurrentTraceIds()?.trace_id;
-  }
-
-  private captureToSentry(params: { exception: AppInternalException; request: Request; requestId?: string }): void {
-    const { exception, request, requestId } = params;
-
-    Sentry.withScope((scope) => {
-      const traceId = getCurrentTraceIds()?.trace_id;
-
-      if (traceId) {
-        scope.setTag('trace_id', traceId);
-      }
-
-      if (requestId) {
-        scope.setTag('request_id', requestId);
-      }
-
-      // * Strip the query string: it can carry tokens, one-time codes, or ids that must not reach Sentry.
-      scope.setExtra('url', request.url.split('?')[0]);
-      scope.setExtra('method', request.method);
-      scope.setExtra('headers', this.sanitizeHeaders(request.headers));
-      scope.setLevel('error');
-
-      const originalError = exception.originalError ?? exception;
-
-      Sentry.captureException(originalError);
-    });
-  }
-
-  private sanitizeHeaders(headers: Request['headers']): Record<string, unknown> {
-    const sanitized: Record<string, unknown> = { ...headers };
-
-    for (const key of SENSITIVE_HEADER_KEYS) {
-      if (sanitized[key]) {
-        sanitized[key] = '[REDACTED]';
-      }
-    }
-
-    return sanitized;
   }
 }

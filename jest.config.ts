@@ -40,7 +40,6 @@ const config: Config = {
     '!**/*.repository.ts',
     '!**/index.ts',
     '!main.ts',
-    '!instrument.ts',
     '!config/env.config.ts',
     '!**/*.config.ts',
     '!database/typeorm.data-source.ts',

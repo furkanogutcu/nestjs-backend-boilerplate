@@ -1,5 +1,6 @@
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 import { CompositePropagator, W3CBaggagePropagator, W3CTraceContextPropagator } from '@opentelemetry/core';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -7,11 +8,14 @@ import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { resourceFromAttributes } from '@opentelemetry/resources';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter, ParentBasedSampler, TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-node';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 import { env } from '@config/env.config';
+
+const METRIC_EXPORT_INTERVAL_MS = 15000;
 
 let sdk: NodeSDK | undefined;
 
@@ -28,7 +32,7 @@ export function startTracing(): void {
 
   const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: env.OTEL_SERVICE_NAME,
-    [ATTR_SERVICE_VERSION]: env.SENTRY_RELEASE ?? 'unknown',
+    [ATTR_SERVICE_VERSION]: env.SERVICE_RELEASE,
     'deployment.environment': env.NODE_ENV,
   });
 
@@ -39,6 +43,10 @@ export function startTracing(): void {
   sdk = new NodeSDK({
     resource,
     traceExporter,
+    metricReader: new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter({ url: `${env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/metrics` }),
+      exportIntervalMillis: METRIC_EXPORT_INTERVAL_MS,
+    }),
     sampler: new ParentBasedSampler({ root: new TraceIdRatioBasedSampler(env.OTEL_TRACES_SAMPLER_RATIO) }),
     textMapPropagator: new CompositePropagator({
       propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
@@ -48,7 +56,7 @@ export function startTracing(): void {
         ignoreIncomingRequestHook: (req) => {
           const url = req.url ?? '';
 
-          return ['/health', '/metrics', '/api/v1/health', '/api/v1/metrics'].some((path) => url.startsWith(path));
+          return ['/health', '/api/v1/health'].some((path) => url.startsWith(path));
         },
       }),
       new ExpressInstrumentation(),

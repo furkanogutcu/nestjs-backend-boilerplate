@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
 import { randomBytes } from 'crypto';
 import { QueryFailedError } from 'typeorm';
 
@@ -196,7 +195,6 @@ export class OAuthService {
 
     if (!account) {
       this.logger.warn(`Sign-in attempt for an unlinked provider identity (provider=${provider})`);
-      Sentry.captureMessage('signin_no_account', { level: 'warning', tags: { provider } });
       throw new AppNotFoundException({
         resourceName: 'Account',
         code: ExceptionCode.OauthAccountNotFound,
@@ -218,8 +216,6 @@ export class OAuthService {
     await this.deleteNonceOrThrow({
       key: nonce ? this.nonceKey({ userId, nonce }) : null,
       logMessage: `OAuth nonce missing or replayed (user_id=${userId})`,
-      eventName: 'oauth_nonce_replay',
-      tags: { user_id: userId },
     });
   }
 
@@ -227,27 +223,14 @@ export class OAuthService {
     await this.deleteNonceOrThrow({
       key: nonce ? this.signinNonceKey(nonce) : null,
       logMessage: 'Sign-in nonce missing or replayed',
-      eventName: 'signin_nonce_replay',
-      tags: {},
     });
   }
 
-  private async deleteNonceOrThrow({
-    key,
-    logMessage,
-    eventName,
-    tags,
-  }: {
-    key: string | null;
-    logMessage: string;
-    eventName: string;
-    tags: Record<string, string>;
-  }): Promise<void> {
+  private async deleteNonceOrThrow({ key, logMessage }: { key: string | null; logMessage: string }): Promise<void> {
     const removed = key ? await this.redisService.getClient().del(key) : 0;
 
     if (removed !== 1) {
       this.logger.warn(logMessage);
-      Sentry.captureMessage(eventName, { level: 'warning', tags });
       throw new AppUnauthorizedException({
         code: ExceptionCode.InvalidOauthToken,
         message: 'Invalid or expired nonce.',

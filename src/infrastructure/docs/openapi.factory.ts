@@ -17,7 +17,6 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
     .addTag('Auth', 'Guest onboarding, token refresh, sign-in and account linking')
     .addTag('Catalog', 'Versioned catalog sync: active version, locale-neutral bundle and per-locale strings')
     .addTag('Health', 'Liveness and readiness probes')
-    .addTag('Metrics', 'Prometheus metrics scrape endpoint')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

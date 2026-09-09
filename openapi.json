@@ -1,21 +1,6 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/api/v1/metrics": {
-      "get": {
-        "operationId": "MetricsController_getMetrics_api/v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Metrics",
-        "tags": [
-          "Metrics"
-        ]
-      }
-    },
     "/api/v1/health": {
       "get": {
         "operationId": "HealthController_liveness_api/v1",
@@ -5211,10 +5196,6 @@
     {
       "name": "Health",
       "description": "Liveness and readiness probes"
-    },
-    {
-      "name": "Metrics",
-      "description": "Prometheus metrics scrape endpoint"
     }
   ],
   "servers": [

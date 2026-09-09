@@ -23,19 +23,6 @@ export class InitSchema1783851505565 implements MigrationInterface {
       `CREATE TABLE "mail_suppressions" ("id" uuid NOT NULL, "email" character varying NOT NULL, "reason" character varying NOT NULL, "metadata" jsonb, "expires_at" TIMESTAMP WITH TIME ZONE, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "UQ_49dcd6bacf3bacd12956355046c" UNIQUE ("email"), CONSTRAINT "PK_274473c195e7bd4e738b90d0580" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "inbox_messages" ("consumer" character varying NOT NULL, "dedup_id" character varying NOT NULL, "topic" character varying NOT NULL, "processed_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), CONSTRAINT "PK_fc3372b60e1313a21eb64b06153" PRIMARY KEY ("consumer", "dedup_id"))`,
-    );
-    await queryRunner.query(`CREATE INDEX "idx_inbox_messages_processed_at" ON "inbox_messages"  ("processed_at") `);
-    await queryRunner.query(
-      `CREATE TABLE "outbox_messages" ("id" uuid NOT NULL, "topic" character varying NOT NULL, "partition_key" character varying, "payload" jsonb NOT NULL, "headers" jsonb, "status" character varying NOT NULL DEFAULT 'pending', "attempts" integer NOT NULL DEFAULT '0', "last_error" text, "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "available_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "published_at" TIMESTAMP WITH TIME ZONE, CONSTRAINT "PK_0171348f527c64b137e4d4f5b66" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "idx_outbox_messages_published_at" ON "outbox_messages"  ("published_at") WHERE status = 'published'`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "idx_outbox_messages_pending" ON "outbox_messages"  ("available_at", "created_at") WHERE status = 'pending'`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "oauth_accounts" ADD CONSTRAINT "FK_22a05e92f51a983475f9281d3b0" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
@@ -46,11 +33,6 @@ export class InitSchema1783851505565 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "sessions" DROP CONSTRAINT "FK_085d540d9f418cfbdc7bd55bb19"`);
     await queryRunner.query(`ALTER TABLE "oauth_accounts" DROP CONSTRAINT "FK_22a05e92f51a983475f9281d3b0"`);
-    await queryRunner.query(`DROP INDEX "public"."idx_outbox_messages_pending"`);
-    await queryRunner.query(`DROP INDEX "public"."idx_outbox_messages_published_at"`);
-    await queryRunner.query(`DROP TABLE "outbox_messages"`);
-    await queryRunner.query(`DROP INDEX "public"."idx_inbox_messages_processed_at"`);
-    await queryRunner.query(`DROP TABLE "inbox_messages"`);
     await queryRunner.query(`DROP TABLE "mail_suppressions"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_f61929073858aa9cb9cb893b66"`);
     await queryRunner.query(`DROP INDEX "public"."IDX_085d540d9f418cfbdc7bd55bb1"`);

@@ -7,7 +7,6 @@ import { DataSource, IsNull } from 'typeorm';
 import { SnakeNamingStrategy } from '@database/strategies/snake-naming.strategy';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { IdempotencyService } from '@infrastructure/idempotency/idempotency.service';
-import { OutboxService } from '@infrastructure/kafka/reliability/outbox/outbox.service';
 import { RedisService } from '@infrastructure/redis/redis.service';
 import { AppConflictException } from '@shared/exceptions/conflict.exception';
 import { AppNotFoundException } from '@shared/exceptions/not-found.exception';
@@ -73,7 +72,6 @@ describe('OAuthService (integration)', () => {
       dataSource,
       createMock<RevocationService>(),
       new ClockService(),
-      createMock<OutboxService>(),
     );
     const usersRepository = new UsersRepository(dataSource);
     const authService = new AuthService(

@@ -1,7 +1,6 @@
 import { DeepMocked } from '@golevelup/ts-jest';
 import { BadRequestException, HttpException, Logger } from '@nestjs/common';
 import { trace } from '@opentelemetry/api';
-import * as Sentry from '@sentry/nestjs';
 import { Request, Response } from 'express';
 import { EntityNotFoundError, TypeORMError } from 'typeorm';
 import { z } from 'zod';
@@ -17,23 +16,16 @@ import { GlobalExceptionFilter } from './global.filter';
 
 jest.mock('@config/env.config', () => ({ env: { NODE_ENV: 'test' } }));
 jest.mock('@opentelemetry/api', () => ({ trace: { getActiveSpan: jest.fn() } }));
-jest.mock('@sentry/nestjs', () => ({
-  withScope: jest.fn(),
-  captureException: jest.fn(),
-}));
 
 function mockActiveSpan(ids: { traceId: string; spanId: string } | undefined): void {
   jest.mocked(trace.getActiveSpan).mockReturnValue(ids ? ({ spanContext: () => ids } as never) : undefined);
 }
-
-type SentryScope = { setTag: jest.Mock; setExtra: jest.Mock; setLevel: jest.Mock };
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;
   let request: DeepMocked<Request>;
   let response: DeepMocked<Response>;
   let loggerError: jest.SpyInstance;
-  let sentryScope: SentryScope;
 
   function catchException(exception: unknown): IErrorResponse<unknown> {
     filter.catch(exception, createMockArgumentsHost({ request, response }));
@@ -47,10 +39,6 @@ describe('GlobalExceptionFilter', () => {
     response = createMockResponse();
 
     loggerError = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-
-    sentryScope = { setTag: jest.fn(), setExtra: jest.fn(), setLevel: jest.fn() };
-    const withScopeMock = Sentry.withScope as unknown as jest.Mock;
-    withScopeMock.mockImplementation((callback: (scope: SentryScope) => unknown) => callback(sentryScope));
     mockActiveSpan(undefined);
   });
 
@@ -95,8 +83,7 @@ describe('GlobalExceptionFilter', () => {
 
     expect(response.status).toHaveBeenCalledWith(500);
     expect(body.error.code).toBe(ExceptionCode.UnexpectedError);
-    expect(loggerError).toHaveBeenCalled();
-    expect(Sentry.captureException).toHaveBeenCalledWith(zodError);
+    expect(loggerError).toHaveBeenCalledWith(zodError);
   });
 
   it('maps a TypeORM EntityNotFoundError via its transformer', () => {
@@ -112,7 +99,6 @@ describe('GlobalExceptionFilter', () => {
     expect(response.status).toHaveBeenCalledWith(500);
     expect(body.error.code).toBe(ExceptionCode.UnexpectedError);
     expect(loggerError).toHaveBeenCalled();
-    expect(Sentry.captureException).toHaveBeenCalled();
   });
 
   it('maps a known NestJS HttpException via its transformer', () => {
@@ -127,7 +113,7 @@ describe('GlobalExceptionFilter', () => {
 
     expect(response.status).toHaveBeenCalledWith(500);
     expect(body.error.code).toBe(ExceptionCode.UnexpectedError);
-    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(loggerError).toHaveBeenCalled();
   });
 
   it('maps a library http-error (e.g. body parser) via its transformer', () => {
@@ -142,18 +128,16 @@ describe('GlobalExceptionFilter', () => {
     expect(response.status).toHaveBeenCalledWith(413);
     expect(body.error.code).toBe(ExceptionCode.PayloadTooLarge);
     expect(loggerError).not.toHaveBeenCalled();
-    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
-  it('wraps an unknown error as internal and reports it to Sentry with its original error', () => {
+  it('wraps an unknown error as internal and logs its original error', () => {
     const original = new Error('boom');
 
     const body = catchException(original);
 
     expect(response.status).toHaveBeenCalledWith(500);
     expect(body.error.code).toBe(ExceptionCode.UnexpectedError);
-    expect(loggerError).toHaveBeenCalled();
-    expect(Sentry.captureException).toHaveBeenCalledWith(original);
+    expect(loggerError).toHaveBeenCalledWith(original);
   });
 
   it('wraps a non-Error thrown value as internal and reports the wrapped exception', () => {
@@ -161,15 +145,15 @@ describe('GlobalExceptionFilter', () => {
 
     expect(response.status).toHaveBeenCalledWith(500);
     expect(body.error.code).toBe(ExceptionCode.UnexpectedError);
-    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(AppInternalException));
+    expect(loggerError).toHaveBeenCalledWith(expect.any(AppInternalException));
   });
 
-  it('reports an AppInternalException to Sentry using its original error', () => {
+  it('logs an AppInternalException using its original error', () => {
     const original = new Error('downstream failed');
 
     catchException(new AppInternalException({ error: original }));
 
-    expect(Sentry.captureException).toHaveBeenCalledWith(original);
+    expect(loggerError).toHaveBeenCalledWith(original);
   });
 
   describe('internal error scrubbing', () => {
@@ -199,50 +183,6 @@ describe('GlobalExceptionFilter', () => {
     });
   });
 
-  it('redacts sensitive headers before sending them to Sentry', () => {
-    request = createMockRequest({
-      url: '/orders',
-      method: 'POST',
-      headers: {
-        authorization: 'Bearer secret',
-        cookie: 'sid=abc',
-        'idempotency-key': 'idem-123',
-        'x-csrf-token': 'csrf-abc',
-        'content-type': 'application/json',
-      },
-    });
-
-    catchException(new Error('boom'));
-
-    expect(sentryScope.setExtra).toHaveBeenCalledWith('headers', {
-      authorization: '[REDACTED]',
-      cookie: '[REDACTED]',
-      'idempotency-key': '[REDACTED]',
-      'x-csrf-token': '[REDACTED]',
-      'content-type': 'application/json',
-    });
-  });
-
-  it('strips the query string from the Sentry url so tokens and codes are not captured', () => {
-    request = createMockRequest({
-      url: '/auth/reset?token=super-secret&code=123456',
-      method: 'GET',
-      headers: {},
-    });
-
-    catchException(new Error('boom'));
-
-    expect(sentryScope.setExtra).toHaveBeenCalledWith('url', '/auth/reset');
-  });
-
-  it('tags the Sentry scope with the requestId when present', () => {
-    response.getHeader.mockReturnValue('req-xyz');
-
-    catchException(new Error('boom'));
-
-    expect(sentryScope.setTag).toHaveBeenCalledWith('request_id', 'req-xyz');
-  });
-
   describe('traceId', () => {
     it('is omitted when there is no active span', () => {
       const body = catchException(new AppBadRequestException());
@@ -256,14 +196,6 @@ describe('GlobalExceptionFilter', () => {
       const body = catchException(new AppBadRequestException());
 
       expect(body.error.traceId).toBe('trace-from-span');
-    });
-
-    it('tags the Sentry scope with the trace_id so errors link back to Tempo', () => {
-      mockActiveSpan({ traceId: 'trace-from-span', spanId: 'span-1' });
-
-      catchException(new Error('boom'));
-
-      expect(sentryScope.setTag).toHaveBeenCalledWith('trace_id', 'trace-from-span');
     });
   });
 
@@ -279,7 +211,6 @@ describe('GlobalExceptionFilter', () => {
     expect(response.json).toHaveBeenCalledTimes(2);
     expect(body.error.code).toBe(ExceptionCode.UnexpectedError);
     expect(loggerError).toHaveBeenCalled();
-    expect(Sentry.captureException).toHaveBeenCalled();
   });
 
   it('uses the catch-block fallback even when a non-Error is thrown during serialization', () => {

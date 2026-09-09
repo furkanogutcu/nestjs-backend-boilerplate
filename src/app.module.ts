@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 
 import { InfrastructureModule } from '@infrastructure/infrastructure.module';
-import { AccessTokenVerifierModule } from '@modules/auth/access-token-verifier.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { AuthGuard } from '@modules/auth/guards/auth.guard';
 import { GlobalExceptionFilter } from '@shared/exceptions/filters/global.filter';
@@ -16,7 +15,7 @@ import { ResponseInterceptor } from '@shared/interceptors/response.interceptor';
 import { AppZodValidationPipe } from '@shared/pipes/app-zod-validation.pipe';
 
 @Module({
-  imports: [InfrastructureModule, AuthModule, AccessTokenVerifierModule],
+  imports: [InfrastructureModule, AuthModule],
   providers: [
     { provide: APP_PIPE, useClass: AppZodValidationPipe },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

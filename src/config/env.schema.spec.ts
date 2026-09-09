@@ -25,7 +25,6 @@ const baseEnv: Record<string, string> = {
   GAME_CENTER_BUNDLE_IDS: 'com.app.test',
   PLAY_GAMES_OAUTH_CLIENT_ID: 'test-play-games-client.apps.googleusercontent.com',
   PLAY_GAMES_OAUTH_CLIENT_SECRET: 'test-play-games-client-secret',
-  KAFKA_BROKERS: 'localhost:9092',
 };
 
 function envWith(overrides: Record<string, string | undefined>): Record<string, string | undefined> {
@@ -34,18 +33,13 @@ function envWith(overrides: Record<string, string | undefined>): Record<string, 
 
 const productionRequired: Record<string, string> = {
   NODE_ENV: 'production',
-  METRICS_AUTH_USER: 'admin',
-  METRICS_AUTH_PASSWORD: 'metrics-auth-password-0123456789',
+  DOCS_AUTH_USER: 'admin',
+  DOCS_AUTH_PASSWORD: 'metrics-auth-password-0123456789',
   DB_SSL: 'true',
-  KAFKA_SSL: 'true',
-  KAFKA_SASL_MECHANISM: 'scram-sha-256',
-  KAFKA_SASL_USERNAME: 'kafka-user',
-  KAFKA_SASL_PASSWORD: 'kafka-pass',
   REDIS_URL: 'rediss://default:redis-pass-0123456789@localhost:6379',
   MAIL_DRIVER: 'resend',
   RESEND_API_KEY: 're_test_key',
   RESEND_WEBHOOK_SECRET: 'whsec_test',
-  REALTIME_DRIVER: 'socketio',
 };
 
 function prodEnv(overrides: Record<string, string | undefined> = {}): Record<string, string | undefined> {
@@ -63,8 +57,6 @@ describe('ENVSchema', () => {
       expect(result.data.DB_POOL_MAX).toBe(10);
       expect(result.data.DB_SSL).toBe(false);
       expect(result.data.MAIL_DRIVER).toBe('log');
-      expect(result.data.SENTRY_TRACES_SAMPLE_RATE).toBe(0.1);
-      expect(result.data.KAFKA_BROKERS).toEqual(['localhost:9092']);
     }
   });
 
@@ -82,32 +74,24 @@ describe('ENVSchema', () => {
       ['non-postgres DATABASE_URL', { DATABASE_URL: 'mysql://localhost/db' }],
       ['non-redis REDIS_URL', { REDIS_URL: 'http://localhost:6379' }],
       ['invalid MAIL_FROM', { MAIL_FROM: 'not-an-email' }],
-      ['broker without a port', { KAFKA_BROKERS: 'localhost' }],
       ['invalid boolean DB_SSL', { DB_SSL: 'yes' }],
       // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('rejects %s', (_label, overrides) => {
       expect(ENVSchema.safeParse(envWith(overrides)).success).toBe(false);
     });
 
-    it('splits, trims and filters the KAFKA_BROKERS list', () => {
-      const result = ENVSchema.safeParse(envWith({ KAFKA_BROKERS: 'a:1, b:2 ,' }));
-
-      expect(result.success && result.data.KAFKA_BROKERS).toEqual(['a:1', 'b:2']);
-    });
-
     it('coerces boolean strings', () => {
-      const result = ENVSchema.safeParse(envWith({ DB_SSL: 'true', KAFKA_SSL: 'false' }));
+      const result = ENVSchema.safeParse(envWith({ DB_SSL: 'true' }));
 
       expect(result.success && result.data.DB_SSL).toBe(true);
-      expect(result.success && result.data.KAFKA_SSL).toBe(false);
     });
 
-    it('rejects a metrics password shorter than 24 characters', () => {
-      expect(ENVSchema.safeParse(envWith({ METRICS_AUTH_PASSWORD: 'too-short' })).success).toBe(false);
+    it('rejects a docs password shorter than 24 characters', () => {
+      expect(ENVSchema.safeParse(envWith({ DOCS_AUTH_PASSWORD: 'too-short' })).success).toBe(false);
     });
 
-    it('accepts a metrics password of at least 24 characters', () => {
-      expect(ENVSchema.safeParse(envWith({ METRICS_AUTH_PASSWORD: 'a'.repeat(24) })).success).toBe(true);
+    it('accepts a docs password of at least 24 characters', () => {
+      expect(ENVSchema.safeParse(envWith({ DOCS_AUTH_PASSWORD: 'a'.repeat(24) })).success).toBe(true);
     });
 
     it.each([
@@ -120,27 +104,6 @@ describe('ENVSchema', () => {
       const result = ENVSchema.safeParse(envWith({ TRUST_PROXY: input }));
 
       expect(result.success && result.data.TRUST_PROXY).toEqual(expected);
-    });
-
-    it('splits and trims REALTIME_CORS_ORIGINS into well-formed origins', () => {
-      const result = ENVSchema.safeParse(
-        envWith({ REALTIME_CORS_ORIGINS: 'http://localhost:5173, https://app.example.com ,' }),
-      );
-
-      expect(result.success && result.data.REALTIME_CORS_ORIGINS).toEqual([
-        'http://localhost:5173',
-        'https://app.example.com',
-      ]);
-    });
-
-    it.each([
-      ['a path suffix', 'https://app.example.com/ws'],
-      ['a trailing slash', 'https://app.example.com/'],
-      ['a bare host without scheme', 'app.example.com'],
-      ['a wildcard', '*'],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
-    ])('rejects a REALTIME_CORS_ORIGINS entry with %s', (_label, origin) => {
-      expect(ENVSchema.safeParse(envWith({ REALTIME_CORS_ORIGINS: origin })).success).toBe(false);
     });
   });
 
@@ -287,41 +250,7 @@ describe('ENVSchema', () => {
     });
   });
 
-  describe('SASL refinement', () => {
-    it('requires username and password when a mechanism is set', () => {
-      const result = ENVSchema.safeParse(envWith({ KAFKA_SASL_MECHANISM: 'plain' }));
-
-      expect(result.success).toBe(false);
-
-      if (!result.success) {
-        const paths = result.error.issues.map((issue) => issue.path.join('.'));
-        expect(paths).toContain('KAFKA_SASL_USERNAME');
-        expect(paths).toContain('KAFKA_SASL_PASSWORD');
-      }
-    });
-
-    it('passes when mechanism, username and password are all provided', () => {
-      const result = ENVSchema.safeParse(
-        envWith({ KAFKA_SASL_MECHANISM: 'scram-sha-256', KAFKA_SASL_USERNAME: 'u', KAFKA_SASL_PASSWORD: 'p' }),
-      );
-
-      expect(result.success).toBe(true);
-    });
-  });
-
   describe('production auth refinement', () => {
-    it('requires metrics credentials in production', () => {
-      const result = ENVSchema.safeParse(envWith({ NODE_ENV: 'production' }));
-
-      expect(result.success).toBe(false);
-
-      if (!result.success) {
-        const paths = result.error.issues.map((issue) => issue.path.join('.'));
-        expect(paths).toContain('METRICS_AUTH_USER');
-        expect(paths).toContain('METRICS_AUTH_PASSWORD');
-      }
-    });
-
     it('passes in production when all credentials and datastore TLS are provided', () => {
       const result = ENVSchema.safeParse(prodEnv());
 
@@ -338,18 +267,6 @@ describe('ENVSchema', () => {
       }
     });
 
-    it('requires KAFKA_SASL_MECHANISM in production', () => {
-      const result = ENVSchema.safeParse(
-        prodEnv({ KAFKA_SASL_MECHANISM: undefined, KAFKA_SASL_USERNAME: undefined, KAFKA_SASL_PASSWORD: undefined }),
-      );
-
-      expect(result.success).toBe(false);
-
-      if (!result.success) {
-        expect(result.error.issues.map((issue) => issue.path.join('.'))).toContain('KAFKA_SASL_MECHANISM');
-      }
-    });
-
     it('rejects TRUST_PROXY="true" in production', () => {
       const result = ENVSchema.safeParse(prodEnv({ TRUST_PROXY: 'true' }));
 
@@ -362,10 +279,7 @@ describe('ENVSchema', () => {
 
     it.each([
       ['DB_SSL is not enabled', { DB_SSL: 'false' }, 'DB_SSL'],
-      ['KAFKA_SSL is not enabled', { KAFKA_SSL: 'false' }, 'KAFKA_SSL'],
       ['REDIS_URL does not use rediss://', { REDIS_URL: 'redis://localhost:6379' }, 'REDIS_URL'],
-      ['REALTIME_DRIVER is the log driver', { REALTIME_DRIVER: 'log' }, 'REALTIME_DRIVER'],
-      ['REALTIME_DRIVER is off', { REALTIME_DRIVER: 'off' }, 'REALTIME_DRIVER'],
       // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('rejects when %s in production', (_label, overrides, expectedPath) => {
       const result = ENVSchema.safeParse(prodEnv(overrides));

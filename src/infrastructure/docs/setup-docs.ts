@@ -44,11 +44,11 @@ export function setupDocs(app: INestApplication): void {
 }
 
 // * Docs are dev/staging-only, but a staging/preview surface still reaches an untrusted network. When the
-// * operator credentials are configured, put both the rendered docs and the raw OpenAPI JSON behind the same
-// * basic-auth used for /metrics. Registered before the route handlers so the guard runs first.
+// * operator credentials are configured, put both the rendered docs and the raw OpenAPI JSON behind basic-auth.
+// * Registered before the route handlers so the guard runs first.
 function applyDocsAuth(app: INestApplication): void {
-  const user = env.METRICS_AUTH_USER;
-  const password = env.METRICS_AUTH_PASSWORD;
+  const user = env.DOCS_AUTH_USER;
+  const password = env.DOCS_AUTH_PASSWORD;
 
   if (!user || !password) {
     return;

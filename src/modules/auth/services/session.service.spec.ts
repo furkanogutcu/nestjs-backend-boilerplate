@@ -3,8 +3,6 @@ import { createHash } from 'crypto';
 import { EntityManager } from 'typeorm';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { KafkaTopic } from '@infrastructure/kafka/enums/kafka-topic.enum';
-import { OutboxService } from '@infrastructure/kafka/reliability/outbox/outbox.service';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 import { createMockDataSource, createMockEntityManager } from '@test/helpers';
@@ -39,7 +37,6 @@ function buildSession(overrides: Partial<Session>): Session {
 describe('SessionService', () => {
   let sessionsRepository: DeepMocked<SessionsRepository>;
   let revocationService: DeepMocked<RevocationService>;
-  let outboxService: DeepMocked<OutboxService>;
   let manager: DeepMocked<EntityManager>;
   let service: SessionService;
 
@@ -50,7 +47,6 @@ describe('SessionService', () => {
     sessionsRepository.save.mockImplementation(async (session) => await Promise.resolve(session as Session));
     sessionsRepository.find.mockResolvedValue([]);
     revocationService = createMock<RevocationService>();
-    outboxService = createMock<OutboxService>();
     manager = createMockEntityManager();
     (manager.create as unknown as jest.Mock).mockImplementation((...args: unknown[]) => args[1]);
     (manager.save as unknown as jest.Mock).mockImplementation(async (entity: unknown) => await Promise.resolve(entity));
@@ -60,7 +56,6 @@ describe('SessionService', () => {
       createMockDataSource(manager),
       revocationService,
       new ClockService(),
-      outboxService,
     );
   });
 
@@ -114,19 +109,10 @@ describe('SessionService', () => {
 
       expect(revocationService.revokeFamily).toHaveBeenCalledTimes(1);
       expect(revocationService.revokeFamily).toHaveBeenCalledWith({ familyId: 'family-0' });
-      expect(manager.update).toHaveBeenCalledWith(
-        Session,
+      expect(sessionsRepository.update).toHaveBeenCalledWith(
         { familyId: 'family-0', revokedAt: expect.anything() },
         expect.objectContaining({ revokedAt: expect.any(Date) }),
       );
-      expect(outboxService.enqueue).toHaveBeenCalledWith({
-        manager,
-        params: {
-          topic: KafkaTopic.SessionRevoked,
-          key: 'family-0',
-          data: { scope: 'family', familyId: 'family-0' },
-        },
-      });
     });
 
     it('does not evict any family when under the cap', async () => {
@@ -180,28 +166,11 @@ describe('SessionService', () => {
       await expect(service.rotate({ refreshToken: `${SESSION_ID}.correct-secret` })).rejects.toMatchObject({
         code: ExceptionCode.RefreshTokenReuseDetected,
       });
-      expect(manager.update).toHaveBeenCalledWith(
-        Session,
+      expect(sessionsRepository.update).toHaveBeenCalledWith(
         { familyId: 'family-1', revokedAt: expect.anything() },
         expect.objectContaining({ revokedAt: expect.any(Date) }),
       );
       expect(revocationService.revokeFamily).toHaveBeenCalledWith({ familyId: 'family-1' });
-      expect(outboxService.enqueue).toHaveBeenCalledWith({
-        manager,
-        params: {
-          topic: KafkaTopic.SessionRevoked,
-          key: 'family-1',
-          data: { scope: 'family', familyId: 'family-1' },
-        },
-      });
-    });
-
-    it('does not enqueue a session_revoked kick when rotation revokes the presented session', async () => {
-      manager.findOne.mockResolvedValue(buildSession({}));
-
-      await service.rotate({ refreshToken: `${SESSION_ID}.correct-secret` });
-
-      expect(outboxService.enqueue).not.toHaveBeenCalled();
     });
 
     it('rejects a wrong secret as an invalid refresh token', async () => {
@@ -259,31 +228,14 @@ describe('SessionService', () => {
   });
 
   describe('revoke', () => {
-    it('revokes the given session and enqueues the kick event in the same transaction', async () => {
+    it('revokes the given session and writes its denylist key', async () => {
       await service.revoke({ sessionId: 'session-1' });
 
-      expect(manager.update).toHaveBeenCalledWith(
-        Session,
+      expect(sessionsRepository.update).toHaveBeenCalledWith(
         { id: 'session-1', revokedAt: expect.anything() },
         expect.objectContaining({ revokedAt: expect.any(Date) }),
       );
-      expect(outboxService.enqueue).toHaveBeenCalledWith({
-        manager,
-        params: {
-          topic: KafkaTopic.SessionRevoked,
-          key: 'session-1',
-          data: { scope: 'session', sessionId: 'session-1' },
-        },
-      });
       expect(revocationService.revokeSession).toHaveBeenCalledWith({ sessionId: 'session-1' });
-    });
-
-    it('does not enqueue a kick when the session was already revoked (repeated logout is a no-op)', async () => {
-      (manager.update as unknown as jest.Mock).mockResolvedValue({ affected: 0 });
-
-      await service.revoke({ sessionId: 'session-1' });
-
-      expect(outboxService.enqueue).not.toHaveBeenCalled();
     });
   });
 
@@ -312,20 +264,11 @@ describe('SessionService', () => {
       await expect(service.verifyForStepUp({ refreshToken: `${SESSION_ID}.correct-secret` })).rejects.toMatchObject({
         code: ExceptionCode.RefreshTokenReuseDetected,
       });
-      expect(manager.update).toHaveBeenCalledWith(
-        Session,
+      expect(sessionsRepository.update).toHaveBeenCalledWith(
         { familyId: 'family-1', revokedAt: expect.anything() },
         expect.objectContaining({ revokedAt: expect.any(Date) }),
       );
       expect(revocationService.revokeFamily).toHaveBeenCalledWith({ familyId: 'family-1' });
-      expect(outboxService.enqueue).toHaveBeenCalledWith({
-        manager,
-        params: {
-          topic: KafkaTopic.SessionRevoked,
-          key: 'family-1',
-          data: { scope: 'family', familyId: 'family-1' },
-        },
-      });
     });
 
     it('rejects a session that has expired even though it was never revoked', async () => {
@@ -346,7 +289,7 @@ describe('SessionService', () => {
   });
 
   describe('revokeAllForUser', () => {
-    it('revokes each distinct family of the user (DB + outbox + denylist), collapsing duplicates', async () => {
+    it('revokes each distinct family of the user (DB + denylist), collapsing duplicates', async () => {
       sessionsRepository.find.mockResolvedValue([
         buildSession({ familyId: 'family-1' }),
         buildSession({ familyId: 'family-1' }),
@@ -355,8 +298,7 @@ describe('SessionService', () => {
 
       await service.revokeAllForUser({ userId: 'user-1' });
 
-      expect(manager.update).toHaveBeenCalledTimes(2);
-      expect(outboxService.enqueue).toHaveBeenCalledTimes(2);
+      expect(sessionsRepository.update).toHaveBeenCalledTimes(2);
       expect(revocationService.revokeFamily).toHaveBeenCalledWith({ familyId: 'family-1' });
       expect(revocationService.revokeFamily).toHaveBeenCalledWith({ familyId: 'family-2' });
       expect(revocationService.revokeFamily).toHaveBeenCalledTimes(2);

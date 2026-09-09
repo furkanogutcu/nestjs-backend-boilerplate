@@ -25,7 +25,7 @@ jest.mock('@scalar/nestjs-api-reference', () => ({
 
 const itemSchema = z.object({ id: z.string(), name: z.string() });
 
-const DOCS_AUTH = `Basic ${Buffer.from(`${process.env.METRICS_AUTH_USER}:${process.env.METRICS_AUTH_PASSWORD}`).toString('base64')}`;
+const DOCS_AUTH = `Basic ${Buffer.from(`${process.env.DOCS_AUTH_USER}:${process.env.DOCS_AUTH_PASSWORD}`).toString('base64')}`;
 
 @Controller('docs-demo')
 class DocsDemoController {

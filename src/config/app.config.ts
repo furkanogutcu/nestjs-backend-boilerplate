@@ -12,7 +12,7 @@ export const versioningConfig = {
 export const appConfig = {
   // * Human-facing display name (emails, API docs title). Free-form.
   name: 'NestJS Backend Boilerplate',
-  // * Slug-safe technical identifier (no spaces): Kafka client id, event producer, Redis connection names, service
+  // * Slug-safe technical identifier (no spaces): OpenTelemetry meter name, Redis connection names, service
   // * labels. Keep it in sync with the namespace used for key prefixes.
   slug: namespace,
   redis: {
@@ -28,8 +28,6 @@ export const appConfig = {
       emailVerification: `${namespace}${separator}email-verification`,
       passwordReset: `${namespace}${separator}password-reset`,
       gameCenterReplay: `${namespace}${separator}game-center-replay`,
-      realtime: `${namespace}${separator}realtime`,
-      presenceLock: `${namespace}${separator}presence-lock`,
       mailWebhookInbox: `${namespace}${separator}mail-webhook-inbox`,
     },
   },

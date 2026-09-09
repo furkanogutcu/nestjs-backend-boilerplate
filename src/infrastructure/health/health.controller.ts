@@ -4,7 +4,6 @@ import { HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
 import type { Response } from 'express';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { KafkaHealthIndicator } from '@infrastructure/kafka/observability/kafka.health-indicator';
 import { Public } from '@shared/decorators/public.decorator';
 
 import { RedisHealthIndicator } from './redis.health-indicator';
@@ -22,7 +21,6 @@ export class HealthController {
     private readonly healthCheckService: HealthCheckService,
     private readonly databaseIndicator: TypeOrmHealthIndicator,
     private readonly redisIndicator: RedisHealthIndicator,
-    private readonly kafkaIndicator: KafkaHealthIndicator,
     private readonly clock: ClockService,
   ) {}
 
@@ -59,7 +57,6 @@ export class HealthController {
       await this.healthCheckService.check([
         async () => await this.databaseIndicator.pingCheck('database'),
         async () => await this.redisIndicator.isHealthy('redis'),
-        () => this.kafkaIndicator.isHealthy('kafka'),
       ]);
       healthy = true;
     } catch (error) {

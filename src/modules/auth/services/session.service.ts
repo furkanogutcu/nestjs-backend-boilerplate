@@ -1,13 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import * as Sentry from '@sentry/nestjs';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { DataSource, IsNull, MoreThan } from 'typeorm';
 
 import { env } from '@config/env.config';
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { KafkaTopic } from '@infrastructure/kafka/enums/kafka-topic.enum';
-import { OutboxService } from '@infrastructure/kafka/reliability/outbox/outbox.service';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 import { generateUuid, isUuid } from '@shared/utils/uuid.util';
@@ -42,7 +39,6 @@ export class SessionService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly revocationService: RevocationService,
     private readonly clock: ClockService,
-    private readonly outboxService: OutboxService,
   ) {}
 
   async issue({
@@ -151,28 +147,13 @@ export class SessionService {
   }
 
   async revoke({ sessionId }: { sessionId: string }): Promise<void> {
-    // * The session_revoked event is enqueued in the SAME transaction as the revocation write (durable + atomic),
-    // * and only when a row actually flipped — a repeated logout is a no-op, not a duplicate kick.
-    await this.dataSource.transaction(async (manager) => {
-      const result = await manager.update(
-        Session,
-        { id: sessionId, revokedAt: IsNull() },
-        { revokedAt: this.clock.date() },
-      );
-
-      if ((result.affected ?? 0) > 0) {
-        await this.outboxService.enqueue({
-          manager,
-          params: { topic: KafkaTopic.SessionRevoked, key: sessionId, data: { scope: 'session', sessionId } },
-        });
-      }
-    });
+    await this.sessionsRepository.update({ id: sessionId, revokedAt: IsNull() }, { revokedAt: this.clock.date() });
     await this.revocationService.revokeSession({ sessionId });
   }
 
   // * Kill every live session of one user (all devices/families). Used after a password reset: the new password
-  // * must invalidate any session that may belong to whoever forced the reset. Each family is revoked durably (DB +
-  // * outbox event) and its denylist key written + sockets kicked, exactly like reuse/family-cap eviction.
+  // * must invalidate any session that may belong to whoever forced the reset. Each family is revoked in the
+  // * database and its denylist key written, exactly like reuse/family-cap eviction.
   async revokeAllForUser({ userId }: { userId: string }): Promise<void> {
     const active = await this.sessionsRepository.find({
       where: { userId, revokedAt: IsNull() },
@@ -220,20 +201,10 @@ export class SessionService {
     return { userId: session.userId, sessionId: session.id };
   }
 
-  // * Callers: reuse detection and family-cap eviction — both terminal for the family, so both also kick the
-  // * family's live sockets (their refresh chain is dead; a lingering socket would outlive its session on purpose
-  // * only for normal rotation, which never reaches here).
+  // * Callers: reuse detection and family-cap eviction — both terminal for the family. Each caller pairs this
+  // * database write with a RevocationService call so the family's access tokens are denylisted too.
   private async revokeFamily({ familyId }: { familyId: string }): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      const result = await manager.update(Session, { familyId, revokedAt: IsNull() }, { revokedAt: this.clock.date() });
-
-      if ((result.affected ?? 0) > 0) {
-        await this.outboxService.enqueue({
-          manager,
-          params: { topic: KafkaTopic.SessionRevoked, key: familyId, data: { scope: 'family', familyId } },
-        });
-      }
-    });
+    await this.sessionsRepository.update({ familyId, revokedAt: IsNull() }, { revokedAt: this.clock.date() });
   }
 
   // * Bound the number of concurrent devices: when issuing past the cap, evict the least-recently-active families.
@@ -259,10 +230,6 @@ export class SessionService {
 
   private onReuseDetected({ familyId, userId }: { familyId: string; userId: string }): void {
     this.logger.warn(`Refresh token reuse detected; family revoked (family_id=${familyId}, user_id=${userId})`);
-    Sentry.captureMessage('refresh_token_reuse_detected', {
-      level: 'warning',
-      tags: { family_id: familyId, user_id: userId },
-    });
   }
 
   private parseRefreshToken(refreshToken: string): { sessionId: string; secret: string } | null {

@@ -9,7 +9,6 @@ import {
 import { Response } from 'express';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { KafkaHealthIndicator } from '@infrastructure/kafka/observability/kafka.health-indicator';
 import { createMockResponse } from '@test/helpers';
 
 import { HealthController } from './health.controller';
@@ -19,7 +18,6 @@ describe('HealthController', () => {
   let healthCheckService: DeepMocked<HealthCheckService>;
   let databaseIndicator: DeepMocked<TypeOrmHealthIndicator>;
   let redisIndicator: DeepMocked<RedisHealthIndicator>;
-  let kafkaIndicator: DeepMocked<KafkaHealthIndicator>;
   let clock: DeepMocked<ClockService>;
   let controller: HealthController;
   let response: DeepMocked<Response>;
@@ -29,11 +27,10 @@ describe('HealthController', () => {
     healthCheckService = createMock<HealthCheckService>();
     databaseIndicator = createMock<TypeOrmHealthIndicator>();
     redisIndicator = createMock<RedisHealthIndicator>();
-    kafkaIndicator = createMock<KafkaHealthIndicator>();
     clock = createMock<ClockService>();
     now = 1000;
     clock.epochMillis.mockImplementation(() => now);
-    controller = new HealthController(healthCheckService, databaseIndicator, redisIndicator, kafkaIndicator, clock);
+    controller = new HealthController(healthCheckService, databaseIndicator, redisIndicator, clock);
     response = createMockResponse();
   });
 
@@ -47,7 +44,7 @@ describe('HealthController', () => {
   });
 
   describe('readiness', () => {
-    it('checks the database, redis and kafka and responds 200 when healthy', async () => {
+    it('checks the database and redis and responds 200 when healthy', async () => {
       healthCheckService.check.mockImplementation(async (indicators: HealthIndicatorFunction[]) => {
         await Promise.all(indicators.map(async (indicator) => await indicator()));
 
@@ -58,7 +55,6 @@ describe('HealthController', () => {
 
       expect(databaseIndicator.pingCheck).toHaveBeenCalledWith('database');
       expect(redisIndicator.isHealthy).toHaveBeenCalledWith('redis');
-      expect(kafkaIndicator.isHealthy).toHaveBeenCalledWith('kafka');
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(response.json).toHaveBeenCalledWith({ status: 'ok' });
     });

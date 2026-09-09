@@ -1,5 +1,4 @@
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import * as Sentry from '@sentry/nestjs';
 
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
 import { createMockExecutionContext, createMockReflector, createMockRequest } from '@test/helpers';
@@ -7,8 +6,6 @@ import { createMockExecutionContext, createMockReflector, createMockRequest } fr
 import { RevocationService } from '../services/revocation.service';
 import { TokenService } from '../services/token.service';
 import { AuthGuard } from './auth.guard';
-
-jest.mock('@sentry/nestjs');
 
 describe('AuthGuard', () => {
   let tokenService: DeepMocked<TokenService>;
@@ -72,7 +69,6 @@ describe('AuthGuard', () => {
     await expect(guard.canActivate(createMockExecutionContext({ request }))).resolves.toBe(true);
     expect(request.user).toEqual({ id: 'user-1' });
     expect(request.session).toEqual({ id: 'session-1', familyId: 'family-1' });
-    expect(Sentry.setUser).toHaveBeenCalledWith({ id: 'user-1' });
   });
 
   it('rejects a token whose session has been revoked and reports a security event', async () => {
@@ -90,10 +86,6 @@ describe('AuthGuard', () => {
       AppUnauthorizedException,
     );
     expect(revocationService.isRevoked).toHaveBeenCalledWith({ sessionId: 'session-1', familyId: 'family-1' });
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'revoked_token_presented',
-      expect.objectContaining({ level: 'warning' }),
-    );
   });
 
   it('propagates verification failures', async () => {

@@ -63,10 +63,6 @@ export const EMAIL_MAX_LENGTH = 254;
 
 export const MAX_ACTIVE_FAMILIES_PER_USER = 10;
 
-// * Kafka consumer-group id for the durable revocation-denylist reconcile. Distinct from the realtime fanout group so
-// * both consume every SessionRevoked event: the realtime bridge kicks sockets, this rewrites the denylist key.
-export const REVOCATION_RECONCILE_CONSUMER_GROUP = 'auth-revocation-reconcile';
-
 export const MAX_DISPLAY_NAME_LENGTH = 50;
 
 // * Pin the exact Apple host(s) so a tampered publicKeyUrl cannot turn cert fetching into an SSRF primitive against the wider apple.com surface (static = production, sandbox = Apple sandbox).

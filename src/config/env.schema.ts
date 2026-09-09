@@ -4,8 +4,6 @@ import { KID_PATTERN, parseKeyring } from './keyring.util';
 
 const booleanStringSchema = z.enum(['true', 'false']).transform((value) => value === 'true');
 
-const brokerSchema = z.string().regex(/^[^\s:,]+:\d{1,5}$/, 'must be in host:port format');
-
 const trustProxySchema = z
   .string()
   .default('loopback')
@@ -99,23 +97,6 @@ export const ENVSchema = z
     RESEND_API_KEY: z.string().min(1).optional(),
     RESEND_WEBHOOK_SECRET: z.string().min(1).optional(),
 
-    REALTIME_DRIVER: z.enum(['socketio', 'log', 'off']).default('log'),
-    REALTIME_CORS_ORIGINS: z
-      .string()
-      .optional()
-      .transform((value) =>
-        value
-          ? value
-              .split(',')
-              .map((origin) => origin.trim())
-              .filter(Boolean)
-          : [],
-      )
-      .refine((origins) => origins.every((origin) => /^https?:\/\/[^\s/]+$/.test(origin)), {
-        message:
-          'Each entry must be a scheme + host origin (e.g. https://app.example.com) — no path, no trailing slash',
-      }),
-
     ENCRYPTION_KEYS: keyringSchema(validateHexKey),
     ENCRYPTION_ACTIVE_KID: kidSchema,
 
@@ -176,64 +157,16 @@ export const ENVSchema = z
     EMAIL_VERIFICATION_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
     PASSWORD_RESET_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
 
-    KAFKA_BROKERS: z
-      .string()
-      .min(1)
-      .transform((value) =>
-        value
-          .split(',')
-          .map((broker) => broker.trim())
-          .filter(Boolean),
-      )
-      .pipe(brokerSchema.array().min(1)),
-    KAFKA_SSL: booleanStringSchema.default(false),
-    KAFKA_SASL_MECHANISM: z.enum(['plain', 'scram-sha-256', 'scram-sha-512']).optional(),
-    KAFKA_SASL_USERNAME: z.string().min(1).optional(),
-    KAFKA_SASL_PASSWORD: z.string().min(1).optional(),
+    DOCS_AUTH_USER: z.string().min(1).optional(),
+    DOCS_AUTH_PASSWORD: z.string().min(24).optional(),
 
-    KAFKA_TOPIC_PARTITIONS: z.coerce.number().int().positive().default(3),
-    KAFKA_TOPIC_REPLICATION_FACTOR: z.coerce.number().int().positive().default(1),
-    KAFKA_RETRY_RETENTION_MS: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(7 * 24 * 60 * 60 * 1000),
-    KAFKA_DLQ_RETENTION_MS: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(14 * 24 * 60 * 60 * 1000),
-
-    KAFKA_OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().positive().default(2000),
-    KAFKA_OUTBOX_BATCH_SIZE: z.coerce.number().int().positive().default(100),
-    KAFKA_OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().default(10),
-    KAFKA_OUTBOX_BACKOFF_MS: z.coerce.number().int().positive().default(5000),
-    KAFKA_OUTBOX_BACKOFF_MAX_MS: z.coerce.number().int().positive().default(300000),
-    KAFKA_OUTBOX_RETENTION_MS: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(7 * 24 * 60 * 60 * 1000),
-    KAFKA_OUTBOX_PRUNE_CRON: z.string().min(1).default('0 3 * * *'),
-    KAFKA_INBOX_RETENTION_MS: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(7 * 24 * 60 * 60 * 1000),
-    KAFKA_INBOX_PRUNE_CRON: z.string().min(1).default('0 4 * * *'),
-
-    SENTRY_DSN: z.url().optional(),
-    SENTRY_RELEASE: z.string().min(1).optional(),
-    SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+    SERVICE_RELEASE: z.string().min(1).default('unknown'),
 
     OTEL_ENABLED: booleanStringSchema.default(false),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
     OTEL_SERVICE_NAME: z.string().min(1).default('app'),
     OTEL_TRACES_SAMPLER_RATIO: z.coerce.number().min(0).max(1).default(1),
     OTEL_DEBUG: booleanStringSchema.default(false),
-
-    METRICS_AUTH_USER: z.string().min(1).optional(),
-    METRICS_AUTH_PASSWORD: z.string().min(24).optional(),
   })
   // eslint-disable-next-line no-restricted-syntax -- Zod .transform/.superRefine callback signature is fixed (value, ctx)
   .superRefine((env, ctx) => {
@@ -269,23 +202,6 @@ export const ENVSchema = z
       });
     }
 
-    if (env.KAFKA_SASL_MECHANISM) {
-      if (!env.KAFKA_SASL_USERNAME) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['KAFKA_SASL_USERNAME'],
-          message: 'KAFKA_SASL_USERNAME is required when KAFKA_SASL_MECHANISM is set',
-        });
-      }
-      if (!env.KAFKA_SASL_PASSWORD) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['KAFKA_SASL_PASSWORD'],
-          message: 'KAFKA_SASL_PASSWORD is required when KAFKA_SASL_MECHANISM is set',
-        });
-      }
-    }
-
     if (env.OTEL_ENABLED && !env.OTEL_EXPORTER_OTLP_ENDPOINT) {
       ctx.addIssue({
         code: 'custom',
@@ -319,20 +235,6 @@ export const ENVSchema = z
           message: 'DB_SSL must be true in production (encryption in transit)',
         });
       }
-      if (!env.KAFKA_SSL) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['KAFKA_SSL'],
-          message: 'KAFKA_SSL must be true in production (encryption in transit)',
-        });
-      }
-      if (!env.KAFKA_SASL_MECHANISM) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['KAFKA_SASL_MECHANISM'],
-          message: 'KAFKA_SASL_MECHANISM is required in production (unauthenticated brokers are not allowed)',
-        });
-      }
       if (!env.REDIS_URL.startsWith('rediss://')) {
         ctx.addIssue({
           code: 'custom',
@@ -358,32 +260,11 @@ export const ENVSchema = z
             'TRUST_PROXY must be an explicit CIDR/IP list (e.g. the load balancer subnet and Cloudflare ranges) in production, not "true" or a numeric hop count',
         });
       }
-      if (!env.METRICS_AUTH_USER) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['METRICS_AUTH_USER'],
-          message: 'METRICS_AUTH_USER is required in production',
-        });
-      }
-      if (!env.METRICS_AUTH_PASSWORD) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['METRICS_AUTH_PASSWORD'],
-          message: 'METRICS_AUTH_PASSWORD is required in production',
-        });
-      }
       if (env.MAIL_DRIVER !== 'resend') {
         ctx.addIssue({
           code: 'custom',
           path: ['MAIL_DRIVER'],
           message: 'MAIL_DRIVER must be resend in production',
-        });
-      }
-      if (env.REALTIME_DRIVER !== 'socketio') {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['REALTIME_DRIVER'],
-          message: 'REALTIME_DRIVER must be socketio in production (the log driver pushes nothing)',
         });
       }
     }

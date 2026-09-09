@@ -7,7 +7,7 @@ services:
     ports:
       - 6389:6379
   db:
-    image: 'timescale/timescaledb:latest-pg16'
+    image: 'postgres:17-alpine'
     restart: always
     environment:
       POSTGRES_USER: app
@@ -17,36 +17,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - 5442:5432
-  kafka:
-    image: 'confluentinc/cp-kafka:8.0.1-1-ubi9'
-    restart: always
-    environment:
-      CLUSTER_ID: 'CtayZVvjPjS3zTLo4PgUWA'
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9192,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9192
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-    ports:
-      - 9192:9192
-    volumes:
-      - kafka_data:/var/lib/kafka/data
-  kafka-ui:
-    image: 'provectuslabs/kafka-ui:latest'
-    restart: always
-    depends_on:
-      - kafka
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-    ports:
-      - 8090:8080
 volumes:
   redis_data:
   postgres_data:
-  kafka_data:

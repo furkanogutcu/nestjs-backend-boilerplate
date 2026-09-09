@@ -23,9 +23,9 @@ export function parseClientIp(params: { req: Request; fallbackIp?: string }): st
   return req.ip ?? fallbackIp;
 }
 
-// * The security-critical core shared with the WebSocket handshake path (extractHandshakeIp): only honour a
-// * forwarded client IP when the DIRECT peer is a configured trusted proxy — a client-forged header from an
-// * untrusted peer is ignored. Kept here so HTTP and WS resolve identically off one audited algorithm.
+// ! The security-critical core: only honour a forwarded client IP when the DIRECT peer is a configured trusted
+// ! proxy. Loosening this lets any client forge cf-connecting-ip and impersonate an arbitrary IP, which would
+// ! defeat both the IP rate limiter and every IP recorded in the audit trail.
 export function isTrustedPeer(params: {
   remoteAddress: string | undefined;
   trustFn: TrustProxyFn | undefined;
@@ -44,27 +44,4 @@ export function extractCloudflareIp(headers: IncomingHttpHeaders): string | unde
   const value = Array.isArray(header) ? header[0] : header;
 
   return value && isIP(value) !== 0 ? value : undefined;
-}
-
-// * Raw-input client-IP resolution used by the WebSocket paths (socket.io handshake + engine.io upgrade), which have
-// * no express Request. Same trust discipline as parseClientIp: Cloudflare's cf-connecting-ip is authoritative only
-// * when the direct peer is a configured trusted proxy; otherwise the raw peer address is used, so a client-forged
-// * x-forwarded-for from an untrusted peer cannot influence the result.
-export function resolveClientIp(params: {
-  remoteAddress: string | undefined;
-  headers: IncomingHttpHeaders;
-  trustFn: TrustProxyFn | undefined;
-  fallbackIp?: string;
-}): string {
-  const { remoteAddress, headers, trustFn, fallbackIp = 'unknown' } = params;
-
-  if (isTrustedPeer({ remoteAddress, trustFn })) {
-    const cloudflareIp = extractCloudflareIp(headers);
-
-    if (cloudflareIp) {
-      return cloudflareIp;
-    }
-  }
-
-  return remoteAddress ?? fallbackIp;
 }

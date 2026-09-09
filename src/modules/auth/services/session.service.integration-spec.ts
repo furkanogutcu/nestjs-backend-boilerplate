@@ -5,7 +5,6 @@ import { DataSource } from 'typeorm';
 
 import { SnakeNamingStrategy } from '@database/strategies/snake-naming.strategy';
 import { ClockService } from '@infrastructure/clock/clock.service';
-import { OutboxService } from '@infrastructure/kafka/reliability/outbox/outbox.service';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
 import { SCHEMA_MIGRATIONS } from '@test/helpers';
 
@@ -38,9 +37,6 @@ describe('SessionService (integration)', () => {
       dataSource,
       createMock<RevocationService>(),
       new ClockService(),
-      // * Mocked: the outbox table's migration is not part of this focused schema; the enqueue contract is
-      // * covered by the unit spec.
-      createMock<OutboxService>(),
     );
   });
 

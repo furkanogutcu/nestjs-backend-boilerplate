@@ -8,7 +8,6 @@ import { z } from 'zod';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { IdempotencyService } from '@infrastructure/idempotency/idempotency.service';
-import { OutboxService } from '@infrastructure/kafka/reliability/outbox/outbox.service';
 import { AuthController } from '@modules/auth/auth.controller';
 import { CurrentUser } from '@modules/auth/decorators/current-user.decorator';
 import { Session } from '@modules/auth/entities/session.entity';
@@ -132,7 +131,6 @@ describe('Auth (e2e)', () => {
         { provide: UsersRepository, useValue: usersRepository },
         { provide: SessionsRepository, useValue: sessionsRepository },
         { provide: RevocationService, useValue: revocationService },
-        { provide: OutboxService, useValue: createMock<OutboxService>() },
         { provide: IdempotencyService, useValue: idempotencyService },
         { provide: OAuthService, useValue: oauthService },
         { provide: ProfileService, useValue: profileService },

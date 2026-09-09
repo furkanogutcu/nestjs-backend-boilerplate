@@ -1,6 +1,6 @@
 import { Request } from 'express';
 
-import { extractCloudflareIp, isTrustedPeer, parseClientIp, resolveClientIp, TrustProxyFn } from './ip.util';
+import { extractCloudflareIp, isTrustedPeer, parseClientIp, TrustProxyFn } from './ip.util';
 
 const trustAll: TrustProxyFn = () => true;
 const trustNone: TrustProxyFn = () => false;
@@ -142,41 +142,5 @@ describe('extractCloudflareIp', () => {
 
   it('returns undefined when the header value is not a valid IP', () => {
     expect(extractCloudflareIp({ 'cf-connecting-ip': 'not-an-ip' })).toBeUndefined();
-  });
-});
-
-describe('resolveClientIp', () => {
-  it('honours CF-Connecting-IP when the direct peer is trusted', () => {
-    expect(
-      resolveClientIp({
-        remoteAddress: '10.0.0.5',
-        headers: { 'cf-connecting-ip': '203.0.113.9' },
-        trustFn: trustAll,
-      }),
-    ).toBe('203.0.113.9');
-  });
-
-  it('ignores a spoofed CF-Connecting-IP from an untrusted peer', () => {
-    expect(
-      resolveClientIp({
-        remoteAddress: '198.51.100.1',
-        headers: { 'cf-connecting-ip': '1.2.3.4' },
-        trustFn: trustNone,
-      }),
-    ).toBe('198.51.100.1');
-  });
-
-  it('falls back to the peer address when trusted but CF-Connecting-IP is absent', () => {
-    expect(resolveClientIp({ remoteAddress: '10.0.0.5', headers: {}, trustFn: trustAll })).toBe('10.0.0.5');
-  });
-
-  it('returns the default fallback when there is neither a peer address nor a trusted header', () => {
-    expect(resolveClientIp({ remoteAddress: undefined, headers: {}, trustFn: undefined })).toBe('unknown');
-  });
-
-  it('returns a custom fallback when there is no peer address', () => {
-    expect(resolveClientIp({ remoteAddress: undefined, headers: {}, trustFn: undefined, fallbackIp: '0.0.0.0' })).toBe(
-      '0.0.0.0',
-    );
   });
 });

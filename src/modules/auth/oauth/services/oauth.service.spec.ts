@@ -1,5 +1,4 @@
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import * as Sentry from '@sentry/nestjs';
 import { Redis } from 'ioredis';
 import { QueryFailedError } from 'typeorm';
 
@@ -20,8 +19,6 @@ import { GameCenterVerifier } from './game-center-verifier.service';
 import { GoogleTokenVerifier } from './google-token-verifier.service';
 import { OAuthService } from './oauth.service';
 import { PlayGamesVerifier } from './play-games-verifier.service';
-
-jest.mock('@sentry/nestjs');
 
 describe('OAuthService', () => {
   let redis: DeepMocked<Redis>;
@@ -222,10 +219,6 @@ describe('OAuthService', () => {
       AppUnauthorizedException,
     );
     expect(oauthAccountsRepository.save).not.toHaveBeenCalled();
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'oauth_nonce_replay',
-      expect.objectContaining({ level: 'warning' }),
-    );
   });
 
   it('rejects linking when the verified identity carries no nonce, without touching the denylist', async () => {

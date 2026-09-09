@@ -2,10 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { DatabaseModule } from '@infrastructure/database/database.module';
-import { KafkaModule } from '@infrastructure/kafka/kafka.module';
 
 import { AuthController } from './auth.controller';
-import { RevocationReconcileConsumer } from './consumers/revocation-reconcile.consumer';
 import { OAuthAccount } from './entities/oauth-account.entity';
 import { Session } from './entities/session.entity';
 import { User } from './entities/user.entity';
@@ -31,7 +29,7 @@ import { SessionService } from './services/session.service';
 import { TokenService } from './services/token.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Session, OAuthAccount]), DatabaseModule, KafkaModule],
+  imports: [TypeOrmModule.forFeature([User, Session, OAuthAccount]), DatabaseModule],
   controllers: [AuthController, OAuthController, PasswordController, ProfileController],
   providers: [
     AuthService,
@@ -51,7 +49,6 @@ import { TokenService } from './services/token.service';
     OAuthAccountsRepository,
     AuthGuard,
     RefreshCookieInterceptor,
-    RevocationReconcileConsumer,
   ],
   exports: [TokenService, RevocationService, AuthGuard],
 })
