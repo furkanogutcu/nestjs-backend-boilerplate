@@ -101,7 +101,6 @@ export class AuthController {
     description: 'Refresh token rotated; new token pair returned.',
     errors: [HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN],
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (body + client headers + request)
   async refresh(
     @Body() body: RefreshRequest,
     @ClientHeaders() client: IClientHeaders,
@@ -134,7 +133,6 @@ export class AuthController {
     description:
       'Revokes the session behind the supplied access token, invalidating its refresh token. For web clients it also clears the refresh & CSRF cookies. Returns 204.',
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (session + request + response)
   async logout(
     @CurrentSession() session: { id: string },
     @Req() request: Request,

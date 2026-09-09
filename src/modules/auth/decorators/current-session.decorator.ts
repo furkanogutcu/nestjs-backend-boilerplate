@@ -3,7 +3,6 @@ import { Request } from 'express';
 
 import { AppInternalException } from '@shared/exceptions/internal.exception';
 
-// eslint-disable-next-line no-restricted-syntax -- NestJS createParamDecorator factory signature is fixed (data, ctx)
 export const CurrentSession = createParamDecorator((_data: unknown, ctx: ExecutionContext) => {
   const request: Request = ctx.switchToHttp().getRequest();
 

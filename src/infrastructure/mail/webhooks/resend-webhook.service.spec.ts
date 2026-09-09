@@ -102,7 +102,7 @@ describe('ResendWebhookService', () => {
   });
 
   it('drops a replayed delivery (Svix id already claimed) without suppressing again', async () => {
-    redisClient.set.mockResolvedValue(null);
+    redisClient.set.mockResolvedValue(null as unknown as 'OK');
     verifyMock.mockReturnValue({
       type: 'email.bounced',
       data: { email_id: 'e1', to: ['a@app.test'], bounce: { type: 'Permanent', subType: 'General', message: 'x' } },

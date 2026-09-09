@@ -173,7 +173,6 @@ export class OAuthController {
     description: 'Signed in; token pair and user with linked providers returned.',
     errors: [HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND],
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (body + client headers)
   async signInWithGoogle(
     @Body() body: SigninGoogleRequest,
     @ClientHeaders() client: IClientHeaders,
@@ -198,7 +197,6 @@ export class OAuthController {
     description: 'Signed in; token pair and user with linked providers returned.',
     errors: [HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND],
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (body + client headers)
   async signInWithApple(
     @Body() body: SigninAppleRequest,
     @ClientHeaders() client: IClientHeaders,
@@ -223,7 +221,6 @@ export class OAuthController {
     description: 'Signed in; token pair and user with linked providers returned.',
     errors: [HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND],
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (body + client headers)
   async signInWithGameCenter(
     @Body() body: SigninGameCenterRequest,
     @ClientHeaders() client: IClientHeaders,
@@ -255,7 +252,6 @@ export class OAuthController {
     description: 'Signed in; token pair and user with linked providers returned.',
     errors: [HttpStatus.UNAUTHORIZED, HttpStatus.NOT_FOUND],
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (body + client headers)
   async signInWithPlayGames(
     @Body() body: SigninPlayGamesRequest,
     @ClientHeaders() client: IClientHeaders,

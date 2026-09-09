@@ -97,7 +97,7 @@ describe('IdempotencyService', () => {
 
   it('re-reads after losing the SET NX race and surfaces the holder state (409)', async () => {
     redis.get.mockResolvedValueOnce(null).mockResolvedValueOnce('encrypted');
-    redis.set.mockResolvedValue(null);
+    redis.set.mockResolvedValue(null as unknown as 'OK');
     sensitiveService.encrypt.mockReturnValue('encrypted');
     sensitiveService.decrypt.mockReturnValue({ state: 'in_progress', fingerprint: 'fp' });
     const compute = jest.fn();
@@ -156,7 +156,7 @@ describe('IdempotencyService', () => {
 
   it('fails closed with a 503 when the lock is lost but the holder entry vanished', async () => {
     redis.get.mockResolvedValue(null);
-    redis.set.mockResolvedValue(null);
+    redis.set.mockResolvedValue(null as unknown as 'OK');
     sensitiveService.encrypt.mockReturnValue('encrypted');
     const compute = jest.fn();
 

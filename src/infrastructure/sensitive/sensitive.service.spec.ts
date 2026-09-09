@@ -54,7 +54,6 @@ describe('SensitiveService', () => {
     it.each([
       ['null', null],
       ['undefined', undefined],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('throws when the input is %s', (_label, input) => {
       expect(() => service.encrypt({ input })).toThrow(AppInternalException);
     });

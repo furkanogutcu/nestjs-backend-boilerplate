@@ -181,7 +181,6 @@ describe('GameCenterVerifier', () => {
     ['a non-apple host', 'https://evil.example.com/gc.cer'],
     ['an apple.com host outside the pinned Game Center set', 'https://evil.apple.com/gc.cer'],
     ['a non-https scheme', 'http://static.gc.apple.com/gc.cer'],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('rejects a publicKeyUrl on %s', async (_label, publicKeyUrl) => {
     await expect(verifier.verify(buildAssertion({ publicKeyUrl }))).rejects.toBeInstanceOf(AppUnauthorizedException);
     expect(global.fetch).not.toHaveBeenCalled();
@@ -266,7 +265,7 @@ describe('GameCenterVerifier', () => {
   });
 
   it('rejects a signature that was already seen (replay)', async () => {
-    redis.set.mockResolvedValueOnce(null);
+    redis.set.mockResolvedValueOnce(null as unknown as 'OK');
 
     await expect(verifier.verify(buildAssertion())).rejects.toBeInstanceOf(AppUnauthorizedException);
   });

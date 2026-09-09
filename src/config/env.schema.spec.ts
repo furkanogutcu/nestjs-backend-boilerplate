@@ -75,7 +75,6 @@ describe('ENVSchema', () => {
       ['non-redis REDIS_URL', { REDIS_URL: 'http://localhost:6379' }],
       ['invalid MAIL_FROM', { MAIL_FROM: 'not-an-email' }],
       ['invalid boolean DB_SSL', { DB_SSL: 'yes' }],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('rejects %s', (_label, overrides) => {
       expect(ENVSchema.safeParse(envWith(overrides)).success).toBe(false);
     });
@@ -99,7 +98,6 @@ describe('ENVSchema', () => {
       ['boolean false', 'false', false],
       ['numeric hop count', '2', 2],
       ['CIDR/keyword list', 'loopback, 10.0.0.0/8', 'loopback, 10.0.0.0/8'],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('normalizes TRUST_PROXY (%s)', (_label, input, expected) => {
       const result = ENVSchema.safeParse(envWith({ TRUST_PROXY: input }));
 
@@ -171,7 +169,6 @@ describe('ENVSchema', () => {
       ],
       ['kid is case-sensitive (k1 and K1 are distinct)', `k1:${HEX_A}, K1:${HEX_B}`, { k1: HEX_A, K1: HEX_B }],
       ['uppercase hex characters are accepted', `k1:${HEX_UPPER}`, { k1: HEX_UPPER }],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('parses %s', (_label, input, expected) => {
       const result = ENVSchema.safeParse(
         envWith({ ENCRYPTION_KEYS: input, ENCRYPTION_ACTIVE_KID: Object.keys(expected)[0] }),
@@ -203,7 +200,6 @@ describe('ENVSchema', () => {
       ['kid contains a dot', `k.1:${HEX_A}`],
       ['duplicate kid', `k1:${HEX_A}, k1:${HEX_B}`],
       ['one valid entry and one malformed entry → whole list rejected', `k1:${HEX_A}, k2:not-hex`],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('rejects %s', (_label, input) => {
       const result = ENVSchema.safeParse(envWith({ ENCRYPTION_KEYS: input, ENCRYPTION_ACTIVE_KID: 'k1' }));
 
@@ -280,7 +276,6 @@ describe('ENVSchema', () => {
     it.each([
       ['DB_SSL is not enabled', { DB_SSL: 'false' }, 'DB_SSL'],
       ['REDIS_URL does not use rediss://', { REDIS_URL: 'redis://localhost:6379' }, 'REDIS_URL'],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('rejects when %s in production', (_label, overrides, expectedPath) => {
       const result = ENVSchema.safeParse(prodEnv(overrides));
 
@@ -363,7 +358,6 @@ describe('ENVSchema', () => {
     it.each([
       ['RESEND_API_KEY', 'RESEND_API_KEY'],
       ['RESEND_WEBHOOK_SECRET', 'RESEND_WEBHOOK_SECRET'],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('requires %s when MAIL_DRIVER is resend', (key, expectedPath) => {
       const result = ENVSchema.safeParse(
         envWith({ MAIL_DRIVER: 'resend', RESEND_API_KEY: 're_k', RESEND_WEBHOOK_SECRET: 'whsec', [key]: undefined }),

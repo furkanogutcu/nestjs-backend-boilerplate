@@ -11,7 +11,6 @@ describe('linkGoogleSchema', () => {
     ['a missing refresh_token', { id_token: 'header.payload.signature' }],
     ['an empty id_token', { id_token: '', refresh_token: 'v1.token' }],
     ['an unknown key', { id_token: 'header.payload.signature', refresh_token: 'v1.token', extra: 'nope' }],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('rejects %s', (_label, value) => {
     expect(linkGoogleSchema.safeParse(value).success).toBe(false);
   });

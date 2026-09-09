@@ -37,7 +37,6 @@ const keyringSchema = (validateValue: (value: string) => string | null): z.ZodTy
   z
     .string()
     .min(1)
-    // eslint-disable-next-line no-restricted-syntax -- Zod .transform/.superRefine callback signature is fixed (value, ctx)
     .transform((value, ctx): Record<string, string> => {
       const { keys, errors } = parseKeyring({ raw: value, validateValue });
 
@@ -168,7 +167,6 @@ export const ENVSchema = z
     OTEL_TRACES_SAMPLER_RATIO: z.coerce.number().min(0).max(1).default(1),
     OTEL_DEBUG: booleanStringSchema.default(false),
   })
-  // eslint-disable-next-line no-restricted-syntax -- Zod .transform/.superRefine callback signature is fixed (value, ctx)
   .superRefine((env, ctx) => {
     if (env.ENCRYPTION_KEYS && !(env.ENCRYPTION_ACTIVE_KID in env.ENCRYPTION_KEYS)) {
       ctx.addIssue({

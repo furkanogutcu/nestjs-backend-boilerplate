@@ -17,7 +17,6 @@ import { TypeORMExceptionTransformer } from '../transformers/typeorm.exception-t
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
 
-  // eslint-disable-next-line no-restricted-syntax -- NestJS ExceptionFilter.catch signature is fixed (exception, host)
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();

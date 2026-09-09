@@ -40,7 +40,6 @@ export class PasswordController {
     description: 'Account created; token pair and user summary returned.',
     errors: [HttpStatus.BAD_REQUEST, HttpStatus.CONFLICT],
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (body + client headers)
   async register(@Body() body: RegisterRequest, @ClientHeaders() client: IClientHeaders): Promise<CredentialsResponse> {
     const result = await this.passwordService.register({
       email: body.email,
@@ -66,7 +65,6 @@ export class PasswordController {
     description: 'Authenticated; token pair and user summary returned.',
     errors: [HttpStatus.BAD_REQUEST, HttpStatus.UNAUTHORIZED],
   })
-  // eslint-disable-next-line no-restricted-syntax -- route handler composes framework param decorators (body + client headers)
   async login(@Body() body: LoginRequest, @ClientHeaders() client: IClientHeaders): Promise<CredentialsResponse> {
     const result = await this.passwordService.login({
       email: body.email,

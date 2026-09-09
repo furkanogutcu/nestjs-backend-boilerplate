@@ -51,7 +51,6 @@ export class SendMailProcessor extends WorkerHost {
   }
 
   @OnWorkerEvent('failed')
-  // eslint-disable-next-line no-restricted-syntax -- BullMQ worker event handler signature is fixed (job, error)
   onFailed(job: Job<ISendMailParams>, error: Error): void {
     this.logger.error(
       `Mail job ${job.id} failed (attempt ${job.attemptsMade}/${job.opts.attempts ?? 1}): ${error.message}`,

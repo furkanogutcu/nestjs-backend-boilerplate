@@ -6,7 +6,6 @@ import { AppValidationException } from '../exceptions/validation.exception';
 
 @Injectable()
 export class AppZodValidationPipe extends ZodValidationPipe {
-  // eslint-disable-next-line no-restricted-syntax -- NestJS PipeTransform.transform signature is fixed (value, metadata)
   transform(value: unknown, metadata: ArgumentMetadata) {
     try {
       return super.transform(value, metadata);

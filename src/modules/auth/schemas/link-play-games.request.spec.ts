@@ -11,7 +11,6 @@ describe('linkPlayGamesSchema', () => {
     ['a missing refresh_token', { server_auth_code: '4/0Aean' }],
     ['an empty server_auth_code', { server_auth_code: '', refresh_token: 'v1.token' }],
     ['an unknown key', { server_auth_code: '4/0Aean', refresh_token: 'v1.token', extra: 'nope' }],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('rejects %s', (_label, value) => {
     expect(linkPlayGamesSchema.safeParse(value).success).toBe(false);
   });

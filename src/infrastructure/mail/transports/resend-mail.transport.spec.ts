@@ -65,7 +65,6 @@ describe('ResendMailTransport', () => {
     ['rate limit (429)', 429],
     ['server error (500)', 500],
     ['unknown status (null)', null],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('throws a retryable Error on %s', async (_label, statusCode) => {
     sendMock.mockResolvedValue({
       data: null,

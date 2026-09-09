@@ -9,7 +9,6 @@ import { parseClientInput } from '../utils/parse-client-input.util';
 export type SearchParams<TEntity> = Partial<Record<keyof TEntity, FindOperator<string>>>[] | undefined;
 
 export const Search = <TEntity>(fields: (keyof TEntity)[]) =>
-  // eslint-disable-next-line no-restricted-syntax -- NestJS createParamDecorator factory signature is fixed (data, ctx)
   createParamDecorator((_data: unknown, ctx: ExecutionContext): SearchParams<TEntity> => {
     const request = ctx.switchToHttp().getRequest<Request>();
 

@@ -13,7 +13,6 @@ import { OffsetPaginated } from '../responses/offset-paginated.response';
 export class ResponseInterceptor implements NestInterceptor {
   constructor(private readonly reflector: Reflector) {}
 
-  // eslint-disable-next-line no-restricted-syntax -- NestJS NestInterceptor.intercept signature is fixed (context, next)
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const schema = this.reflector.getAllAndOverride<ZodType | undefined>(RESPONSE_SCHEMA, [
       context.getHandler(),

@@ -103,6 +103,30 @@ export default tseslint.config(
     },
   },
   {
+    // * Framework-dictated signatures: NestJS lifecycle classes and param-decorator factories, Express handlers,
+    // * TypeORM's NamingStrategyInterface, Zod transform/superRefine callbacks and Jest it.each rows all take
+    // * positional arguments this codebase does not control. The named-parameter rule stays on everywhere else —
+    // * services, utils and repositories are its real target.
+    files: [
+      '**/*.spec.ts',
+      'test/**/*.ts',
+      '**/*.controller.ts',
+      '**/*.decorator.ts',
+      '**/*.interceptor.ts',
+      '**/*.guard.ts',
+      '**/*.filter.ts',
+      '**/*.pipe.ts',
+      '**/*.middleware.ts',
+      '**/*.processor.ts',
+      '**/strategies/*.ts',
+      '**/schemas/*.ts',
+      'src/config/env.schema.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+  {
     files: ['**/entities/*.entity.ts'],
     plugins: {
       local: {

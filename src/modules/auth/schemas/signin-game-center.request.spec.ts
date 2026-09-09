@@ -18,7 +18,6 @@ describe('signinGameCenterSchema', () => {
     ['a non-integer timestamp', { ...validAssertion, timestamp: 1.5 }],
     ['a non-positive timestamp', { ...validAssertion, timestamp: 0 }],
     ['an unknown key', { ...validAssertion, refresh_token: 'nope' }],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('rejects %s', (_label, value) => {
     expect(signinGameCenterSchema.safeParse(value).success).toBe(false);
   });

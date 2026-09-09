@@ -18,7 +18,6 @@ import { contextBuilder } from '@shared/middlewares/context-builder.middleware';
 import { AppZodValidationPipe } from '@shared/pipes/app-zod-validation.pipe';
 
 jest.mock('@scalar/nestjs-api-reference', () => ({
-  // eslint-disable-next-line no-restricted-syntax -- Express handler signature is fixed (req, res[, next])
   apiReference: () => (_req: unknown, res: { type: (value: string) => { send: (body: string) => void } }) =>
     res.type('html').send('<!doctype html><html><body><script id="scalar-api-reference"></script></body></html>'),
 }));

@@ -19,7 +19,6 @@ describe('linkGameCenterSchema', () => {
     ['a non-url public_key_url', { ...validAssertion, public_key_url: 'not-a-url' }],
     ['a non-positive timestamp', { ...validAssertion, timestamp: -1 }],
     ['an unknown key', { ...validAssertion, extra: 'nope' }],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('rejects %s', (_label, value) => {
     expect(linkGameCenterSchema.safeParse(value).success).toBe(false);
   });

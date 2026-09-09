@@ -23,7 +23,6 @@ export class IdempotencyInterceptor implements NestInterceptor {
     private readonly idempotencyService: IdempotencyService,
   ) {}
 
-  // eslint-disable-next-line no-restricted-syntax -- NestJS NestInterceptor.intercept signature is fixed (context, next)
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const options = this.reflector.getAllAndOverride<IIdempotentOptions | undefined>(IDEMPOTENT_KEY, [
       context.getHandler(),

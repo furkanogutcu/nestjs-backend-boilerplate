@@ -9,7 +9,6 @@ describe('refreshRequestSchema', () => {
     ['an empty refresh_token', { refresh_token: '' }],
     ['a refresh_token over the max length', { refresh_token: 'a'.repeat(513) }],
     ['an unknown key', { refresh_token: 'v1.token', extra: 'nope' }],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('rejects %s', (_label, value) => {
     expect(refreshRequestSchema.safeParse(value).success).toBe(false);
   });

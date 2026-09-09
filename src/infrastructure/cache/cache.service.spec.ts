@@ -71,7 +71,6 @@ describe('CacheService', () => {
       ['zero', 0],
       ['negative', -5],
       ['fractional', 1.5],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('throws when ttl is %s', async (_label, ttl) => {
       await expect(service.set({ key: 'orders', data: { a: 1 }, ttl })).rejects.toBeInstanceOf(AppInternalException);
     });

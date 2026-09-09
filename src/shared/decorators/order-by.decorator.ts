@@ -11,7 +11,6 @@ export type OrderByParam<TEntity> = Partial<Record<keyof TEntity, FindOptionsOrd
 export const OrderBy = <TEntity>(fields: (keyof TEntity)[]) => {
   const orderBySchema = createOrderBySchema(fields as string[]);
 
-  // eslint-disable-next-line no-restricted-syntax -- NestJS createParamDecorator factory signature is fixed (data, ctx)
   return createParamDecorator((_data: unknown, ctx: ExecutionContext): OrderByParam<TEntity> => {
     const request = ctx.switchToHttp().getRequest<Request>();
 

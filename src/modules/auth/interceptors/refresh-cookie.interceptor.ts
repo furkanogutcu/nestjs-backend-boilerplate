@@ -17,7 +17,6 @@ interface IRefreshCarrier extends Record<string, unknown> {
 // * absence for web.
 @Injectable()
 export class RefreshCookieInterceptor implements NestInterceptor {
-  // eslint-disable-next-line no-restricted-syntax -- NestJS NestInterceptor.intercept signature is fixed (context, next)
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();

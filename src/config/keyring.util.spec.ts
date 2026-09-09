@@ -20,7 +20,6 @@ describe('parseKeyring', () => {
       ['empty entries between commas', `k1:${HEX},,k2:${HEX_B},,,`, { k1: HEX, k2: HEX_B }],
       ['hyphens and underscores in kids', `key-2024:${HEX}, key_old:${HEX_B}`, { 'key-2024': HEX, key_old: HEX_B }],
       ['case-sensitive kids', `k1:${HEX}, K1:${HEX_B}`, { k1: HEX, K1: HEX_B }],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('parses %s', (_label, raw, expected) => {
       const { keys, errors } = parseKeyring({ raw, validateValue: hexValidator });
 
@@ -46,7 +45,6 @@ describe('parseKeyring', () => {
       ['an invalid character in the kid', `k!:${HEX}`],
       ['a space in the kid', `k 1:${HEX}`],
       ['a dot in the kid', `k.1:${HEX}`],
-      // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
     ])('rejects %s with no valid keys', (_label, raw) => {
       const { keys, errors } = parseKeyring({ raw, validateValue: hexValidator });
 

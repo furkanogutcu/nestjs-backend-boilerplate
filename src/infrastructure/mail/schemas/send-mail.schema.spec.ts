@@ -21,7 +21,6 @@ describe('sendMailSchema', () => {
     ['an empty subject', { subject: '' }],
     ['an empty template', { template: '' }],
     ['a non-object context', { context: 'nope' }],
-    // eslint-disable-next-line no-restricted-syntax -- Jest it.each row callback signature is positional
   ])('rejects %s', (_label, overrides) => {
     expect(sendMailSchema.safeParse({ ...validPayload, ...overrides }).success).toBe(false);
   });

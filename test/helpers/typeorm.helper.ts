@@ -22,7 +22,6 @@ export function createMockEntityManager(): DeepMocked<EntityManager> {
 export function createMockDataSource(manager: EntityManager = createMockEntityManager()): DeepMocked<DataSource> {
   const dataSource = createMock<DataSource>();
 
-  // eslint-disable-next-line no-restricted-syntax -- matches TypeORM DataSource.transaction overload signature
   dataSource.transaction.mockImplementation(async (handlerOrLevel: unknown, maybeHandler?: unknown) => {
     const handler = (typeof handlerOrLevel === 'function' ? handlerOrLevel : maybeHandler) as (
       em: EntityManager,

@@ -25,7 +25,6 @@ export class ResendWebhookController {
   @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Resend webhook' })
-  // eslint-disable-next-line no-restricted-syntax -- NestJS route handler params are bound by @Req/@Headers decorators
   async handle(
     @Req() request: RawBodyRequest<Request>,
     @Headers() headers: Record<string, string | undefined>,

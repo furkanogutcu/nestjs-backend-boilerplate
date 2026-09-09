@@ -6,7 +6,6 @@ const DEFAULT_CACHE_CONTROL = 'no-store';
 
 @Injectable()
 export class CacheControlInterceptor implements NestInterceptor {
-  // eslint-disable-next-line no-restricted-syntax -- NestJS NestInterceptor.intercept signature is fixed (context, next)
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     // * Deny-by-default: every response is non-cacheable unless a handler later overrides Cache-Control
     // * (e.g. the catalog's ETag routes). Set in the pre-phase so it also lands on thrown errors and on

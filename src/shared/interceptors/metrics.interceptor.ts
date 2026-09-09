@@ -15,7 +15,6 @@ export class MetricsInterceptor implements NestInterceptor {
     unit: 's',
   });
 
-  // eslint-disable-next-line no-restricted-syntax -- NestJS NestInterceptor.intercept signature is fixed (context, next)
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     // * Monotonic clock: duration must not be skewed by wall-clock jumps (NTP/DST), so this uses performance.now() not ClockService.
     const startTime = performance.now();

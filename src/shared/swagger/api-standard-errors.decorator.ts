@@ -62,7 +62,6 @@ const CROSS_CUTTING_ERROR_STATUSES: HttpStatus[] = [
 ];
 
 export function ApiStandardErrors(extraStatuses: HttpStatus[] = []): MethodDecorator & ClassDecorator {
-  // eslint-disable-next-line no-restricted-syntax -- Array.sort comparator signature is fixed (a, b)
   const statuses = [...new Set([...CROSS_CUTTING_ERROR_STATUSES, ...extraStatuses])].sort((a, b) => a - b);
 
   return applyDecorators(

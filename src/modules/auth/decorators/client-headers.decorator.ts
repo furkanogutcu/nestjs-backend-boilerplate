@@ -9,7 +9,6 @@ function single(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-// eslint-disable-next-line no-restricted-syntax -- NestJS createParamDecorator factory signature is fixed (data, ctx)
 export const ClientHeaders = createParamDecorator((_data: unknown, ctx: ExecutionContext): IClientHeaders => {
   const request: Request = ctx.switchToHttp().getRequest();
 
