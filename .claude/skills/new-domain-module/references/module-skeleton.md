@@ -23,7 +23,6 @@ import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } fro
 
 @Entity('articles')
 export class Article {
-  // * app-side UUIDv7 (the service generates it with `generateUuid()`) — no DB-side DEFAULT on the column.
   @PrimaryColumn('uuid')
   id!: string;
 
@@ -74,10 +73,12 @@ export class UpdateArticleRequest extends createZodDto(updateArticleSchema) {}
 
 ## schemas/article.response.ts
 
+The wire contract is snake_case. Put `.describe()` on every field (OpenAPI is generated from it) and
+`.meta({ example })` where an example helps — not a comment.
+
 ```ts
 import { z } from 'zod';
 
-// Wire contract snake_case; .describe() on every field (OpenAPI is generated from this), .meta({ example }) for an example.
 export const articleResponseSchema = z.object({
   id: z.uuid().describe('Article id'),
   title: z.string().describe('Article title'),

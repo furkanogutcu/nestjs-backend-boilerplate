@@ -43,7 +43,6 @@ afterAll(async () => {
   await container.stop();
 });
 
-// Inject the real client only by faking getClient():
 const redisService = createMock<RedisService>();
 redisService.getClient.mockReturnValue(redis);
 const cache = new CacheService(new SensitiveService(), redisService);

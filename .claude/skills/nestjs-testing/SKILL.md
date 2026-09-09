@@ -86,6 +86,10 @@ that, use the shared factories in **`@test/helpers`** (`createMockRequest/Respon
   `return await`). `await expect(p).rejects.toThrow(...)` — never leave a floating promise.
 - One spec file per source file, co-located. Parametrize repeated scenarios with `it.each` /
   `describe.each` (see `simple-exceptions.spec.ts`, `nestjs.exception-transformer.spec.ts`).
+- **Write no comments.** The `it('...')` name is the documentation — a comment restating the scenario is
+  deleted. The only comment worth keeping is a harness trap that would break the suite if someone tidied it
+  away (`vi.mock` hoisting, an `env.config` import that calls `process.exit`): one line, under 120 characters,
+  `// !` or `// *` prefixed. The `local/comment-policy` ESLint rule rejects anything else.
 
 ## Determinism (mandatory rules)
 

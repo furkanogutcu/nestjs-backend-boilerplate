@@ -80,6 +80,9 @@ module so the implementation lands in one pass.
 - A method with 2+ parameters → a single named-parameter object (constructors exempt — DI). Private methods at the
   bottom of the class. Explicit return types. Interface `I` prefix, abstract `Base` prefix.
 - Relative imports within the same subtree; the `@modules`/`@shared`/`@infrastructure` alias across layers.
+- **Write no comments.** The names and the Zod `.describe()` carry the intent. A comment is only for a hazard the
+  code cannot state, in one line under 120 characters with a `// !` / `// *` prefix — the `local/comment-policy`
+  ESLint rule rejects anything else.
 
 ## When the work is done (definition of done)
 
