@@ -109,6 +109,8 @@ export default tseslint.config(
     // * services, utils and repositories are its real target.
     files: [
       '**/*.spec.ts',
+      '**/*.integration-spec.ts',
+      '**/*.e2e-spec.ts',
       'test/**/*.ts',
       '**/*.controller.ts',
       '**/*.decorator.ts',

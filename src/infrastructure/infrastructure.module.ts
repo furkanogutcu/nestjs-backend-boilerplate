@@ -13,6 +13,7 @@ import { QueuesModule } from './queues/queues.module';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
 import { SecurityModule } from './security/security.module';
 import { SensitiveModule } from './sensitive/sensitive.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SensitiveModule } from './sensitive/sensitive.module';
     LoggerModule,
     QueuesModule,
     MailModule,
+    StorageModule,
     SecurityModule,
     RateLimitModule,
   ],

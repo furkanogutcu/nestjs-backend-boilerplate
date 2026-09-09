@@ -23,6 +23,8 @@ export enum ExceptionCode {
   InvalidMfaCode = 'invalid_mfa_code',
   AccountSuspended = 'account_suspended',
   PasswordChangeRequired = 'password_change_required',
+  UnsupportedFileType = 'unsupported_file_type',
+  FileTooLarge = 'file_too_large',
   WeakPassword = 'weak_password',
   InvalidVerificationToken = 'invalid_verification_token',
   InvalidResetToken = 'invalid_reset_token',

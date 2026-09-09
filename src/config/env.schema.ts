@@ -75,6 +75,26 @@ const envObjectSchema = z.object({
   HTTP_REQUEST_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(80000),
   // * Time between readiness reporting unavailable and the server refusing new connections. The load
   // * balancer needs a few probe intervals to notice; closing earlier drops requests it already routed here.
+  // * Object storage. Optional as a group: a deployment that stores no files configures none of these, and the
+  // * refinement below rejects a half-configured bucket rather than failing on the first upload.
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().min(1).default('auto'),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  // * Origin that serves the `public/` prefix (a CDN or a public bucket). Without it nothing can be served
+  // * publicly and every object has to be fetched through a signed URL.
+  S3_PUBLIC_BASE_URL: z.url().optional(),
+  // * MinIO and some S3-compatible stores need path-style addressing; R2 and AWS do not.
+  S3_FORCE_PATH_STYLE: booleanStringSchema.default(false),
+  // ! Hard ceiling for a single upload, enforced when the URL is signed. A caller may ask for less, never more.
+  UPLOAD_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10 * 1024 * 1024),
+  UPLOAD_URL_TTL_SECONDS: z.coerce.number().int().positive().max(3600).default(300),
+
   // * How long audit events are kept before `pnpm audit:prune` removes them. Long by default: an audit trail
   // * that expires before an incident is investigated is worse than useless.
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
@@ -221,6 +241,19 @@ export const ENVSchema = envObjectSchema.superRefine((env, ctx) => {
       path: ['OTEL_EXPORTER_OTLP_ENDPOINT'],
       message: 'OTEL_EXPORTER_OTLP_ENDPOINT is required when OTEL_ENABLED is true',
     });
+  }
+
+  const storageKeys = ['S3_ENDPOINT', 'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;
+  const missingStorageKeys = storageKeys.filter((key) => env[key] === undefined);
+
+  if (missingStorageKeys.length > 0 && missingStorageKeys.length < storageKeys.length) {
+    for (const key of missingStorageKeys) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [key],
+        message: `${key} is required when any other S3_* variable is set`,
+      });
+    }
   }
 
   if (env.MAIL_DRIVER === 'resend') {
