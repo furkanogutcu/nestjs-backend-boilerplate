@@ -10,10 +10,7 @@ export const versioningConfig = {
 } as const;
 
 export const appConfig = {
-  // * Human-facing display name (emails, API docs title). Free-form.
   name: 'NestJS Backend Boilerplate',
-  // * Slug-safe technical identifier (no spaces): OpenTelemetry meter name, Redis connection names, service
-  // * labels. Keep it in sync with the namespace used for key prefixes.
   slug: namespace,
   redis: {
     separator,

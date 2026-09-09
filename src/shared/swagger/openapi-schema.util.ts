@@ -39,8 +39,6 @@ export function dataEnvelopeSchemaObject(schema: ZodType): SchemaObject {
   };
 }
 
-// * Merge endpoint-specific meta properties into the base pagination meta, so a paginated list can attach extra
-// * response-level metadata (e.g. a market-wide refresh time) alongside `pagination` in one typed `meta` object.
 function withExtraMeta({ base, extraMeta }: { base: SchemaObject; extraMeta?: ZodType }): SchemaObject {
   if (!extraMeta) return base;
 

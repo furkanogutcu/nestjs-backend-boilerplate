@@ -1,4 +1,4 @@
-// * Must load before any instrumented module so OpenTelemetry patches them first.
+// ! Must load before any instrumented module so OpenTelemetry patches them first.
 import './infrastructure/observability/tracing';
 import './database/extensions';
 
@@ -25,7 +25,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
     bodyParser: false,
-    // * Keep the raw request body so the Resend webhook can verify its Svix signature over the exact bytes.
+    // ! Svix signature is verified over the exact bytes; without rawBody the webhook cannot authenticate.
     rawBody: true,
   });
 
@@ -33,15 +33,12 @@ async function bootstrap(): Promise<void> {
 
   app.useLogger(app.get(Logger));
   app.use(contextBuilder);
-  // * Parse the Cookie header so the auth layer can read the refresh & CSRF cookies (web transport).
   app.use(cookieParser());
 
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
   app.set('trust proxy', env.TRUST_PROXY);
 
-  // * CORS with credentials only when explicit web origins are configured (a cross-origin SPA needs the refresh
-  // * cookie sent + received). Empty means same-origin/native-only, so CORS stays off.
   app.enableCors(
     env.CORS_ALLOWED_ORIGINS.length > 0 ? { origin: env.CORS_ALLOWED_ORIGINS, credentials: true } : { origin: false },
   );
@@ -62,16 +59,13 @@ async function bootstrap(): Promise<void> {
   server.timeout = env.HTTP_SOCKET_TIMEOUT_MS;
 }
 
-// ! Nest's enableShutdownHooks() is deliberately not used: it calls app.close() the moment the signal lands,
-// ! while the load balancer is still routing traffic here. The order below is the whole point — readiness must
-// ! fail, and the balancer must be given time to notice, BEFORE the server stops accepting connections.
+// ! Not enableShutdownHooks(): readiness must fail and the balancer notice it BEFORE the server stops accepting.
 function registerShutdownHandlers(app: INestApplication): void {
   const logger = new NestLogger('Shutdown');
 
   for (const signal of SHUTDOWN_SIGNALS) {
     process.once(signal, () => {
-      // ! Unconditional exit guard: if any step below hangs (a stuck query, a queue that will not close),
-      // ! the orchestrator would SIGKILL us anyway — exiting on our own terms at least flushes the logs.
+      // ! Exit guard for a hung drain: SIGKILL would follow anyway, and exiting here at least flushes the logs.
       const forceExit = setTimeout(() => {
         logger.error(`Shutdown exceeded ${env.SHUTDOWN_TIMEOUT_MS}ms; forcing exit`);
         process.exit(1);
@@ -101,8 +95,6 @@ async function drain(params: { app: INestApplication; logger: NestLogger; signal
   app.get(ShutdownStateService).beginDrain();
   await sleep(env.SHUTDOWN_DRAIN_DELAY_MS);
 
-  // * Closes the HTTP server, then runs Nest's own destroy hooks: queue workers stop taking jobs and the
-  // * database and Redis connections are released.
   await app.close();
   await shutdownTracing();
 

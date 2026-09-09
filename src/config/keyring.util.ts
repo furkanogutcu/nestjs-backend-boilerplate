@@ -19,7 +19,6 @@ export function parseKeyring({
     .split(',')
     .map((pair) => pair.trim())
     .filter(Boolean)) {
-    // * Split on the first ':' only, so values may themselves contain ':'.
     const separatorIndex = entry.indexOf(':');
 
     if (separatorIndex === -1) {

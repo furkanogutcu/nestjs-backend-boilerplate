@@ -3,11 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 import { env } from '@config/env.config';
 
-// ! The point of this table is that the application cannot rewrite its own history. Migrations run as a
-// ! separate, owning role, so revoking UPDATE and DELETE from the application role leaves it able to append and
-// ! read but not to erase — a compromised application, or an SQL injection through it, cannot cover its tracks.
-// ! When both URLs name the same role the revoke is skipped: it would strip the owner of the ability to prune,
-// ! and a single-role setup has no separation to enforce in the first place.
+// ! Revoking UPDATE/DELETE from the app role is what makes the trail unrewritable by a compromised application.
 function applicationRoleToRestrict(): string | null {
   const applicationRole = parse(env.DATABASE_URL).user;
   const migrationRole = parse(env.MIGRATION_DATABASE_URL ?? env.DATABASE_URL).user;

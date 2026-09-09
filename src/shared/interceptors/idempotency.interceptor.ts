@@ -37,9 +37,6 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const idempotencyKey = this.singleHeader(request.headers['idempotency-key']);
 
     if (idempotencyKey === undefined) {
-      // * NON-idempotent money routes opt into `required`: a missing key is rejected rather than silently
-      // * passed through, so an accidental double-submit cannot charge/act twice. Optional routes (naturally
-      // * idempotent or read-safe) keep passing through.
       if (options.required) {
         throw new AppBadRequestException({
           message: 'This endpoint requires an Idempotency-Key header.',
@@ -53,10 +50,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     validateIdempotencyKey({ value: idempotencyKey, principalSource: options.principalSource });
 
     const principal = this.resolvePrincipal({ request, source: options.principalSource });
-    // * Canonical fingerprint: stable key ordering avoids false conflicts from reordered JSON. Route path params
-    // * (:id, :code) are included alongside body + query so a key cannot be reused across differing requests on a
-    // * route — on a body-less :id money route, omitting them let two distinct resources collide on one cache entry
-    // * and return the FIRST resource's cached success instead of the expected 409 conflict.
+    // ! `params` must stay in the fingerprint: without it two resources on a body-less :id route share one entry.
     const fingerprint = createHash('sha256')
       .update(
         stableStringify({
@@ -82,9 +76,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
   private resolvePrincipal({ request, source }: { request: Request; source: IdempotencyPrincipalSource }): string {
     if (source === IdempotencyPrincipalSource.Anonymous) {
-      // * Bind the shared anonymous namespace to the caller's network identity (client IP + user-agent) so a
-      // * colliding key from a DIFFERENT client cannot resolve to another caller's cached response — which for guest
-      // * sign-in is an access/refresh token pair. A legitimate same-device retry keeps the same principal.
+      // ! Bind the shared anonymous namespace to IP+UA, or a colliding key returns another client's token pair.
       const ip = parseClientIp({ req: request });
       const userAgent = request.headers['user-agent'] ?? '';
 

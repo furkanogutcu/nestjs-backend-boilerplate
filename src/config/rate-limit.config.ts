@@ -22,7 +22,6 @@ export const subjectRateLimitConfig: Record<
   },
 };
 
-// * Coarse per-IP backstop enforced before authentication; tune up if shared egress (mobile CGNAT) trips it.
 export const ipRateLimitConfig: IRateLimitOptions = {
   duration: 60,
   points: 300,

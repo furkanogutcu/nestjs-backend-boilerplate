@@ -93,9 +93,7 @@ Repository.prototype.listWithCursorPagination = async function <Entity extends O
 
   const sortOrder = direction === 'asc' ? 'ASC' : 'DESC';
 
-  // ! Encode the cursor from the column cast to text, not the hydrated entity field:
-  // ! timestamptz/bigint lose µs / >2^53 precision as a JS Date/number, which would corrupt
-  // ! the keyset boundary (a same-millisecond neighbour gets skipped or duplicated at the page edge).
+  // ! Cursor comes from the ::text cast, not the entity field: a hydrated Date/number loses the precision the keyset boundary needs.
   queryBuilder
     .orderBy(`${alias}.${sortColumn}`, sortOrder)
     .addOrderBy(`${alias}.${idColumn}`, sortOrder)
@@ -114,8 +112,7 @@ Repository.prototype.listWithCursorPagination = async function <Entity extends O
     const last = items[items.length - 1];
     const lastId = toCursorValue(last[CURSOR_TIEBREAKER_FIELD as keyof Entity]);
 
-    // ! Resolve the sort value by id: a to-many relation JOIN flattens `raw` to more rows than
-    // ! `entities`, so positional indexing would read the wrong row. The map dedupes by id text.
+    // ! Resolve by id, not position: a to-many JOIN flattens `raw` to more rows than `entities`.
     const rawSortValueById = new Map<string, CursorValue>();
     for (const row of raw as Array<Record<string, unknown>>) {
       rawSortValueById.set(String(row[CURSOR_ID_VALUE_ALIAS]), row[CURSOR_SORT_VALUE_ALIAS] as CursorValue);

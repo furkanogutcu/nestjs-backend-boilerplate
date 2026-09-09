@@ -5,7 +5,6 @@ import { Request } from 'express';
 
 const CF_CONNECTING_IP_HEADER = 'cf-connecting-ip';
 
-// * Express 'trust proxy fn' signature (proxy-addr): tells whether the address at a given hop is a trusted proxy.
 export type TrustProxyFn = (address: string | undefined, hop: number) => boolean;
 
 export function parseClientIp(params: { req: Request; fallbackIp?: string }): string {
@@ -23,9 +22,7 @@ export function parseClientIp(params: { req: Request; fallbackIp?: string }): st
   return req.ip ?? fallbackIp;
 }
 
-// ! The security-critical core: only honour a forwarded client IP when the DIRECT peer is a configured trusted
-// ! proxy. Loosening this lets any client forge cf-connecting-ip and impersonate an arbitrary IP, which would
-// ! defeat both the IP rate limiter and every IP recorded in the audit trail.
+// ! Honour a forwarded IP only when the DIRECT peer is a trusted proxy; loosening this lets anyone forge cf-connecting-ip.
 export function isTrustedPeer(params: {
   remoteAddress: string | undefined;
   trustFn: TrustProxyFn | undefined;

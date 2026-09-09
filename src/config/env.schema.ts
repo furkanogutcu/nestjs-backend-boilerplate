@@ -51,13 +51,8 @@ const envObjectSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535),
   NODE_ENV: z.enum(['production', 'development', 'test']).default('production'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
-  // * Public base URL of the application's web front-end (the origin users reach in a browser). Emailed
-  // * verification & password-reset links point here — the page reads the token from the query and calls the API.
   APP_URL: z.url(),
   TRUST_PROXY: trustProxySchema,
-  // * Cross-origin browsers allowed to call the API with credentials (cookies). Comma-separated scheme+host
-  // * origins; empty means same-origin/native-only, so CORS stays off. Required for a cross-origin web SPA that
-  // * relies on the refresh cookie.
   CORS_ALLOWED_ORIGINS: z
     .string()
     .optional()
@@ -73,21 +68,13 @@ const envObjectSchema = z.object({
   HTTP_KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(65000),
   HTTP_HEADERS_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(75000),
   HTTP_REQUEST_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(80000),
-  // * Time between readiness reporting unavailable and the server refusing new connections. The load
-  // * balancer needs a few probe intervals to notice; closing earlier drops requests it already routed here.
-  // * Object storage. Optional as a group: a deployment that stores no files configures none of these, and the
-  // * refinement below rejects a half-configured bucket rather than failing on the first upload.
   S3_ENDPOINT: z.url().optional(),
   S3_REGION: z.string().min(1).default('auto'),
   S3_BUCKET: z.string().min(1).optional(),
   S3_ACCESS_KEY_ID: z.string().min(1).optional(),
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
-  // * Origin that serves the `public/` prefix (a CDN or a public bucket). Without it nothing can be served
-  // * publicly and every object has to be fetched through a signed URL.
   S3_PUBLIC_BASE_URL: z.url().optional(),
-  // * MinIO and some S3-compatible stores need path-style addressing; R2 and AWS do not.
   S3_FORCE_PATH_STYLE: booleanStringSchema.default(false),
-  // ! Hard ceiling for a single upload, enforced when the URL is signed. A caller may ask for less, never more.
   UPLOAD_MAX_BYTES: z.coerce
     .number()
     .int()
@@ -95,18 +82,13 @@ const envObjectSchema = z.object({
     .default(10 * 1024 * 1024),
   UPLOAD_URL_TTL_SECONDS: z.coerce.number().int().positive().max(3600).default(300),
 
-  // ! The window in which a deletion request can still be withdrawn. Erasure is irreversible, so this is the
-  // ! only protection against an account destroyed in anger or by a stolen session.
   ACCOUNT_DELETION_GRACE_DAYS: z.coerce.number().int().positive().default(30),
   ACCOUNT_ERASURE_CRON: z.string().min(1).default('0 4 * * *'),
 
-  // * How long audit events are kept before `pnpm audit:prune` removes them. Long by default: an audit trail
-  // * that expires before an incident is investigated is worse than useless.
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
 
   SHUTDOWN_DRAIN_DELAY_MS: z.coerce.number().int().nonnegative().default(10000),
-  // * Upper bound on the whole shutdown sequence. Must stay below the orchestrator's kill grace period,
-  // * otherwise the process is SIGKILLed mid-drain and in-flight requests are lost anyway.
+  // ! Must stay below the orchestrator's kill grace period, or the process is SIGKILLed mid-drain.
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
 
   HTTP_SOCKET_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(0),
@@ -203,8 +185,6 @@ const envObjectSchema = z.object({
   OTEL_DEBUG: booleanStringSchema.default(false),
 });
 
-// * The drift guard in env-sample.spec.ts reads this to prove .env.sample documents exactly these keys —
-// * an undocumented variable is one nobody sets in a new deployment.
 export const ENV_KEYS = Object.keys(envObjectSchema.shape);
 
 export const ENVSchema = envObjectSchema.superRefine((env, ctx) => {
@@ -300,9 +280,6 @@ export const ENVSchema = envObjectSchema.superRefine((env, ctx) => {
         message: 'REDIS_URL must include a password in production (unauthenticated Redis is not allowed)',
       });
     }
-    // * OAuth providers (Google / Apple / Game Center / Play Games) are opt-in: configure only the ones you use.
-    // * Each verifier fails closed at request time when its config is absent, so an unconfigured provider simply
-    // * rejects sign-in rather than blocking boot — a web-only or email/password-only deployment needs none of them.
     if (env.TRUST_PROXY === true || typeof env.TRUST_PROXY === 'number') {
       ctx.addIssue({
         code: 'custom',

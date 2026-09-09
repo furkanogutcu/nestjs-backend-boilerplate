@@ -21,7 +21,6 @@ export class TypeORMExceptionTransformer {
     return undefined;
   }
 
-  // * Postgres error codes: https://www.postgresql.org/docs/current/errcodes-appendix.html
   private static readonly postgresQueryFailedExceptionMapper: Record<
     string,
     (exception: QueryFailedError) => AppException<unknown> | undefined
@@ -31,15 +30,12 @@ export class TypeORMExceptionTransformer {
   };
 
   private static transformEntityNotFoundError(): AppNotFoundException {
-    // * EntityNotFoundError.message embeds the TypeORM entity class name; echoing it as resourceName would
-    // * leak internal model names to the client, so the not-found is reported with the generic resource label.
+    // ! Generic on purpose: EntityNotFoundError.message embeds the entity class name.
     return new AppNotFoundException();
   }
 
   private static transformConflictError(): AppConflictException {
-    // * 23505 is unique_violation. The driver detail carries the conflicting column names and the offending
-    // * value ("Key (email)=(a@b.com) already exists"); surfacing either would leak the schema and user data,
-    // * so the conflict is reported generically with no field list.
+    // ! Empty on purpose: the driver detail carries the conflicting column and its value ("Key (email)=(a@b.com)").
     return new AppConflictException({ conflictedFields: [] });
   }
 

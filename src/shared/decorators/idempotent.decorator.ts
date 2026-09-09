@@ -8,8 +8,7 @@ export interface IIdempotentOptions {
   scope: string;
   responseTtlSeconds: number;
   principalSource: IdempotencyPrincipalSource;
-  // * When true a missing Idempotency-Key is rejected (not silently passed through). Use on money-moving,
-  // * NON-idempotent routes (purchase, level-up) where an accidental double-submit would charge/act twice.
+  // * Rejects a missing key instead of passing through; for non-idempotent routes where a double-submit acts twice.
   required: boolean;
 }
 

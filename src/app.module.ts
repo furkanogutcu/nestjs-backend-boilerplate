@@ -34,8 +34,7 @@ import { AppZodValidationPipe } from '@shared/pipes/app-zod-validation.pipe';
     { provide: APP_GUARD, useClass: AuthGuard },
     // * After AuthGuard: permission checks need request.user to be resolved first.
     { provide: APP_GUARD, useClass: PermissionGuard },
-    // * Last of the authorisation guards: a route hidden behind an off flag should look absent, which is only
-    // * a meaningful answer once the caller has been authenticated and authorised.
+    // * Last authorisation guard: "route absent" is only a meaningful answer once the caller is authorised.
     { provide: APP_GUARD, useClass: FeatureFlagGuard },
     { provide: APP_GUARD, useClass: SubjectRateLimiterGuard },
   ],

@@ -9,14 +9,13 @@ const EXCLUDED_ROUTE_SUFFIXES = ['/health'];
 
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
-  // * OTel derives count and sum from the histogram, so a separate request counter would be redundant.
   private readonly duration: Histogram = getMeter().createHistogram('http.server.request.duration', {
     description: 'Duration of inbound HTTP requests.',
     unit: 's',
   });
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    // * Monotonic clock: duration must not be skewed by wall-clock jumps (NTP/DST), so this uses performance.now() not ClockService.
+    // ! performance.now(), not ClockService: a monotonic clock so NTP/DST jumps cannot skew the duration.
     const startTime = performance.now();
     const request = context.switchToHttp().getRequest<Request>();
     const method = request.method;

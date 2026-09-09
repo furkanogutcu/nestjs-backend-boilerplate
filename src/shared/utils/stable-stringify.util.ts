@@ -1,4 +1,3 @@
-// * Deterministic JSON: object keys sorted recursively (array order preserved) so payloads differing only in key order produce identical output. Used for request fingerprints.
 export function stableStringify(value: unknown): string {
   return JSON.stringify(canonicalize(value));
 }

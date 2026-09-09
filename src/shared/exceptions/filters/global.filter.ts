@@ -32,8 +32,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const appException = this.toAppException(exception);
 
       if (appException instanceof AppInternalException) {
-        // * Log the wrapped cause, not the generic wrapper: the wrapper's message and code are masked
-        // * placeholders, so logging it alone would discard the only record of what actually failed.
         this.logger.error(appException.originalError ?? appException);
       }
 
@@ -52,11 +50,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return exception;
     }
 
-    // * A raw ZodError reaching the filter is never client input: request payloads convert to
-    // * AppValidationException in AppZodValidationPipe (and the pagination/search/order-by param
-    // * decorators), response bodies in ResponseInterceptor. What lands here is a server-side parse of
-    // * stored or internal data (e.g. a published catalog snapshot that predates a schema change) — a
-    // * data-integrity fault, not a bad request. Surface it as 500 so it is logged and reported.
+    // ! A raw ZodError here is never client input — those convert upstream — so it is a data fault, not a 400.
     if (exception instanceof z.ZodError) {
       return new AppInternalException({ message: 'Internal data failed schema validation', error: exception });
     }
@@ -88,11 +82,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const { exception, requestId, traceId } = params;
     const body = exception.toJSON();
 
-    // * Internal faults must never leak their code, message, or details to the client — those can carry
-    // * dependency names, key ids, or stored-data shapes. The real values are preserved for the operator via
-    // * the logger.error in catch(); the client gets only a generic envelope plus the
-    // * correlation ids below. Masked in every environment, not just production, so non-prod deployments and
-    // * any internet-reachable preview never disclose internals.
+    // ! Masked in every environment: an internal code/message/details can carry dependency names and data shapes.
     if (exception instanceof AppInternalException) {
       body.error.code = ExceptionCode.UnexpectedError;
       body.error.message = 'An unexpected error occurred.';

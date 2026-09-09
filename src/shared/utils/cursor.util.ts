@@ -28,7 +28,6 @@ export function encodeCursor(cursor: IDecodedCursor): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
 }
 
-// * Cursor sort field must be NON-NULL: row-value comparison against NULL is undefined.
 export function decodeCursor(raw: string): IDecodedCursor | null {
   try {
     const json = Buffer.from(raw, 'base64url').toString('utf8');
