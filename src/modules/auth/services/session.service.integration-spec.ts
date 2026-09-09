@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
 
 import { SnakeNamingStrategy } from '@database/strategies/snake-naming.strategy';
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
 import { SCHEMA_MIGRATIONS } from '@test/helpers';
@@ -37,6 +38,7 @@ describe('SessionService (integration)', () => {
       dataSource,
       createMock<RevocationService>(),
       new ClockService(),
+      createMock<AuditService>(),
     );
   });
 

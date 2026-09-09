@@ -4,6 +4,8 @@ import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { DataSource, IsNull, MoreThan } from 'typeorm';
 
 import { env } from '@config/env.config';
+import { AuditAction, AuditSubjectType } from '@infrastructure/audit/audit-action.enum';
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
@@ -39,6 +41,7 @@ export class SessionService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly revocationService: RevocationService,
     private readonly clock: ClockService,
+    private readonly auditService: AuditService,
   ) {}
 
   async issue({
@@ -149,6 +152,12 @@ export class SessionService {
   async revoke({ sessionId }: { sessionId: string }): Promise<void> {
     await this.sessionsRepository.update({ id: sessionId, revokedAt: IsNull() }, { revokedAt: this.clock.date() });
     await this.revocationService.revokeSession({ sessionId });
+
+    await this.auditService.record({
+      action: AuditAction.AuthSessionRevoked,
+      subjectType: AuditSubjectType.Session,
+      subjectId: sessionId,
+    });
   }
 
   // * Kill every live session of one user (all devices/families). Used after a password reset: the new password

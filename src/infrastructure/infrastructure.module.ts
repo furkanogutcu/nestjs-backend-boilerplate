@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AuditModule } from './audit/audit.module';
 import { CacheModule } from './cache/cache.module';
 import { ClockModule } from './clock/clock.module';
 import { DatabaseModule } from './database/database.module';
@@ -17,6 +18,7 @@ import { SensitiveModule } from './sensitive/sensitive.module';
   imports: [
     LifecycleModule,
     ClockModule,
+    AuditModule,
     SensitiveModule,
     CacheModule,
     DatabaseModule,

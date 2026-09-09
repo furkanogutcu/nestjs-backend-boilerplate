@@ -68,7 +68,8 @@
     "postman:generate": "pnpm docs:generate && portman -l openapi.json -o postman/app-api.postman_collection.json -c postman/portman-config.json -s postman/openapi-to-postman.json",
     "obs:up": "docker compose -f docker-compose.observability.yml up -d",
     "obs:down": "docker compose -f docker-compose.observability.yml down",
-    "admin:create": "ts-node -r tsconfig-paths/register ./src/modules/auth/rbac/scripts/create-admin.script.ts"
+    "admin:create": "ts-node -r tsconfig-paths/register ./src/modules/auth/rbac/scripts/create-admin.script.ts",
+    "audit:prune": "ts-node -r tsconfig-paths/register ./src/infrastructure/audit/scripts/prune-audit.script.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.5",

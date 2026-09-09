@@ -7,6 +7,7 @@ import request from 'supertest';
 import type { Mock } from 'vitest';
 import { z } from 'zod';
 
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { IdempotencyService } from '@infrastructure/idempotency/idempotency.service';
 import { AuthController } from '@modules/auth/auth.controller';
@@ -131,6 +132,7 @@ describe('Auth (e2e)', () => {
         ClockService,
         { provide: UsersRepository, useValue: usersRepository },
         { provide: SessionsRepository, useValue: sessionsRepository },
+        { provide: AuditService, useValue: createMock<AuditService>() },
         { provide: RevocationService, useValue: revocationService },
         { provide: IdempotencyService, useValue: idempotencyService },
         { provide: OAuthService, useValue: oauthService },

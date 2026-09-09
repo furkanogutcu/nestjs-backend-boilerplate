@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { EntityManager } from 'typeorm';
 import type { Mock } from 'vitest';
 
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { ExceptionCode } from '@shared/exceptions/enums/exception-code.enum';
 import { AppUnauthorizedException } from '@shared/exceptions/unauthorized.exception';
@@ -57,6 +58,7 @@ describe('SessionService', () => {
       createMockDataSource(manager),
       revocationService,
       new ClockService(),
+      createMock<AuditService>(),
     );
   });
 

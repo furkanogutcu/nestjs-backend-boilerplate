@@ -5,6 +5,7 @@ import { Redis } from 'ioredis';
 import { DataSource, IsNull } from 'typeorm';
 
 import { SnakeNamingStrategy } from '@database/strategies/snake-naming.strategy';
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { IdempotencyService } from '@infrastructure/idempotency/idempotency.service';
 import { RedisService } from '@infrastructure/redis/redis.service';
@@ -72,6 +73,7 @@ describe('OAuthService (integration)', () => {
       dataSource,
       createMock<RevocationService>(),
       new ClockService(),
+      createMock<AuditService>(),
     );
     const usersRepository = new UsersRepository(dataSource);
     const authService = new AuthService(

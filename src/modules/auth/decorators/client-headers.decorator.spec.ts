@@ -16,14 +16,18 @@ describe('ClientHeaders', () => {
   }
 
   it('extracts the user-agent and idempotency-key headers', () => {
-    expect(run({ 'user-agent': 'jest', 'idempotency-key': 'a'.repeat(20) })).toEqual({
+    expect(run({ 'user-agent': 'jest', 'idempotency-key': 'a'.repeat(20) })).toMatchObject({
       userAgent: 'jest',
       idempotencyKey: 'a'.repeat(20),
     });
   });
 
   it('returns undefined for absent headers', () => {
-    expect(run({})).toEqual({ userAgent: undefined, idempotencyKey: undefined });
+    expect(run({})).toMatchObject({ userAgent: undefined, idempotencyKey: undefined });
+  });
+
+  it('carries the resolved client ip so a service can attribute an audit record', () => {
+    expect(run({})).toMatchObject({ ipAddress: '127.0.0.1' });
   });
 
   it('takes the first value when a header is sent multiple times', () => {

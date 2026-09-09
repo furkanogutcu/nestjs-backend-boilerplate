@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 import { QueryFailedError } from 'typeorm';
 import type { Mock, MockedFunction } from 'vitest';
 
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { MailProducer } from '@infrastructure/mail/jobs/mail.producer';
 import { RedisService } from '@infrastructure/redis/redis.service';
@@ -74,6 +75,7 @@ describe('PasswordService', () => {
       passwordStrengthService,
       mfaService,
       userRolesService,
+      createMock<AuditService>(),
     );
     await service.onModuleInit();
   });
@@ -359,7 +361,10 @@ describe('PasswordService', () => {
       await service.resetPassword({ token: 'tok', password: 'new-super-secret' });
 
       expect(mockedHash).toHaveBeenCalledWith('new-super-secret');
-      expect(usersRepository.update).toHaveBeenCalledWith({ id: 'u1' }, { passwordHash: 'argon2-hash' });
+      expect(usersRepository.update).toHaveBeenCalledWith(
+        { id: 'u1' },
+        { passwordHash: 'argon2-hash', mustChangePassword: false },
+      );
       expect(sessionService.revokeAllForUser).toHaveBeenCalledWith({ userId: 'u1' });
     });
 

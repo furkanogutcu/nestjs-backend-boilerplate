@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { AuditAction, AuditSubjectType } from '@infrastructure/audit/audit-action.enum';
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ResponseDto } from '@shared/decorators/response-dto.decorator';
 import { SubjectRateLimit } from '@shared/decorators/subject-rate-limit.decorator';
 import { SubjectRateLimitPolicy } from '@shared/interfaces/rate-limit-rule.interface';
@@ -14,7 +16,10 @@ import { MfaService } from './services/mfa.service';
 @ApiTags('Auth')
 @Controller('auth/mfa')
 export class MfaController {
-  constructor(private readonly mfaService: MfaService) {}
+  constructor(
+    private readonly mfaService: MfaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Post('enrol')
   @ApiBearerAuth()
@@ -55,6 +60,13 @@ export class MfaController {
   async confirm(@CurrentUser() user: { id: string }, @Body() body: MfaCodeRequest): Promise<MfaRecoveryCodesResponse> {
     const { recoveryCodes } = await this.mfaService.confirmEnrolment({ userId: user.id, code: body.code });
 
+    await this.auditService.record({
+      action: AuditAction.AuthMfaEnabled,
+      actorUserId: user.id,
+      subjectType: AuditSubjectType.User,
+      subjectId: user.id,
+    });
+
     return { recovery_codes: recoveryCodes };
   }
 
@@ -70,5 +82,12 @@ export class MfaController {
   async disable(@CurrentUser() user: { id: string }, @Body() body: MfaCodeRequest): Promise<void> {
     await this.mfaService.verify({ userId: user.id, code: body.code });
     await this.mfaService.disable({ userId: user.id });
+
+    await this.auditService.record({
+      action: AuditAction.AuthMfaDisabled,
+      actorUserId: user.id,
+      subjectType: AuditSubjectType.User,
+      subjectId: user.id,
+    });
   }
 }

@@ -71,6 +71,8 @@ export class PasswordController {
       password: body.password,
       userAgent: client.userAgent,
       mfaCode: body.mfa_code,
+      ipAddress: client.ipAddress,
+      requestId: client.requestId,
     });
 
     return this.toCredentialsResponse(result);

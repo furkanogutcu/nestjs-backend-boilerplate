@@ -75,6 +75,10 @@ const envObjectSchema = z.object({
   HTTP_REQUEST_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(80000),
   // * Time between readiness reporting unavailable and the server refusing new connections. The load
   // * balancer needs a few probe intervals to notice; closing earlier drops requests it already routed here.
+  // * How long audit events are kept before `pnpm audit:prune` removes them. Long by default: an audit trail
+  // * that expires before an incident is investigated is worse than useless.
+  AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
+
   SHUTDOWN_DRAIN_DELAY_MS: z.coerce.number().int().nonnegative().default(10000),
   // * Upper bound on the whole shutdown sequence. Must stay below the orchestrator's kill grace period,
   // * otherwise the process is SIGKILLed mid-drain and in-flight requests are lost anyway.

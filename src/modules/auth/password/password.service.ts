@@ -5,6 +5,8 @@ import { QueryFailedError } from 'typeorm';
 
 import { appConfig } from '@config/app.config';
 import { env } from '@config/env.config';
+import { AuditAction, AuditSubjectType } from '@infrastructure/audit/audit-action.enum';
+import { AuditService } from '@infrastructure/audit/services/audit.service';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { MailProducer } from '@infrastructure/mail/jobs/mail.producer';
 import { RedisService } from '@infrastructure/redis/redis.service';
@@ -47,6 +49,7 @@ export class PasswordService implements OnModuleInit {
     private readonly passwordStrengthService: PasswordStrengthService,
     private readonly mfaService: MfaService,
     private readonly userRolesService: UserRolesService,
+    private readonly auditService: AuditService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -95,11 +98,15 @@ export class PasswordService implements OnModuleInit {
     password,
     userAgent,
     mfaCode,
+    ipAddress,
+    requestId,
   }: {
     email: string;
     password: string;
     userAgent?: string | null;
     mfaCode?: string;
+    ipAddress?: string | null;
+    requestId?: string | null;
   }): Promise<ICredentialsResult> {
     const user = await this.usersRepository.findOne({ where: { email } });
 
@@ -107,10 +114,26 @@ export class PasswordService implements OnModuleInit {
     // * from a wrong password, then fail with the same generic error either way.
     if (!user || !user.passwordHash) {
       await verify(this.dummyHash, password);
+      // * No subject id: the account may not exist, and recording the attempted address here would turn the
+      // * audit log into a list of guessed emails.
+      await this.auditService.record({
+        action: AuditAction.AuthLoginFailed,
+        metadata: { reason: 'unknown_account_or_passwordless' },
+        ipAddress,
+        requestId,
+      });
       throw this.invalidCredentials();
     }
 
     if (!(await verify(user.passwordHash, password))) {
+      await this.auditService.record({
+        action: AuditAction.AuthLoginFailed,
+        subjectType: AuditSubjectType.User,
+        subjectId: user.id,
+        metadata: { reason: 'wrong_password' },
+        ipAddress,
+        requestId,
+      });
       throw this.invalidCredentials();
     }
 
@@ -124,6 +147,15 @@ export class PasswordService implements OnModuleInit {
     await this.enforceMfa({ userId: user.id, mfaCode });
 
     const tokens = await this.authService.issueSessionForUser({ userId: user.id, userAgent, linked: true });
+
+    await this.auditService.record({
+      action: AuditAction.AuthLoginSucceeded,
+      actorUserId: user.id,
+      subjectType: AuditSubjectType.User,
+      subjectId: user.id,
+      ipAddress,
+      requestId,
+    });
 
     return { user, ...tokens };
   }
@@ -166,8 +198,14 @@ export class PasswordService implements OnModuleInit {
         message: 'Verification link is invalid or has expired.',
       });
     }
-
     await this.usersRepository.update({ id: userId }, { emailVerifiedAt: this.clock.date() });
+
+    await this.auditService.record({
+      action: AuditAction.AuthEmailVerified,
+      actorUserId: userId,
+      subjectType: AuditSubjectType.User,
+      subjectId: userId,
+    });
   }
 
   // * Enumeration-safe: always resolves. Only actually sends when there is an unverified account to send to.
@@ -199,6 +237,12 @@ export class PasswordService implements OnModuleInit {
         path: 'reset-password',
         ttlSeconds: env.PASSWORD_RESET_TTL_SECONDS,
       });
+
+      await this.auditService.record({
+        action: AuditAction.AuthPasswordResetRequested,
+        subjectType: AuditSubjectType.User,
+        subjectId: user.id,
+      });
     }
   }
 
@@ -216,10 +260,18 @@ export class PasswordService implements OnModuleInit {
     }
 
     const passwordHash = await hash(password);
-    await this.usersRepository.update({ id: userId }, { passwordHash });
+    // * Clears the handover flag from `admin:create`: completing a reset is a deliberate password change.
+    await this.usersRepository.update({ id: userId }, { passwordHash, mustChangePassword: false });
     // * A reset may be the response to a compromise: kill every existing session so a stolen refresh token cannot
     // * outlive the password it was issued under.
     await this.sessionService.revokeAllForUser({ userId });
+
+    await this.auditService.record({
+      action: AuditAction.AuthPasswordResetCompleted,
+      actorUserId: userId,
+      subjectType: AuditSubjectType.User,
+      subjectId: userId,
+    });
   }
 
   private async sendVerificationMail({ user }: { user: User }): Promise<void> {

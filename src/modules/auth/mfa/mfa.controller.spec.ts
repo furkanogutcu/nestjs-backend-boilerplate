@@ -1,5 +1,7 @@
 import { createMock, DeepMocked } from '@golevelup/ts-vitest';
 
+import { AuditService } from '@infrastructure/audit/services/audit.service';
+
 import { MfaController } from './mfa.controller';
 import { MfaService } from './services/mfa.service';
 
@@ -10,7 +12,7 @@ describe('MfaController', () => {
 
   beforeEach(() => {
     mfaService = createMock<MfaService>();
-    controller = new MfaController(mfaService);
+    controller = new MfaController(mfaService, createMock<AuditService>());
   });
 
   describe('enrol', () => {
