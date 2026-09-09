@@ -73,6 +73,13 @@ const envObjectSchema = z.object({
   HTTP_KEEP_ALIVE_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(65000),
   HTTP_HEADERS_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(75000),
   HTTP_REQUEST_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(80000),
+  // * Time between readiness reporting unavailable and the server refusing new connections. The load
+  // * balancer needs a few probe intervals to notice; closing earlier drops requests it already routed here.
+  SHUTDOWN_DRAIN_DELAY_MS: z.coerce.number().int().nonnegative().default(10000),
+  // * Upper bound on the whole shutdown sequence. Must stay below the orchestrator's kill grace period,
+  // * otherwise the process is SIGKILLed mid-drain and in-flight requests are lost anyway.
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+
   HTTP_SOCKET_TIMEOUT_MS: z.coerce.number().int().nonnegative().default(0),
 
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\/.+/, 'must be a postgres connection URI'),

@@ -5,6 +5,7 @@ import { ClockModule } from './clock/clock.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
+import { LifecycleModule } from './lifecycle/lifecycle.module';
 import { LoggerModule } from './logger/logger.module';
 import { MailModule } from './mail/mail.module';
 import { QueuesModule } from './queues/queues.module';
@@ -14,6 +15,7 @@ import { SensitiveModule } from './sensitive/sensitive.module';
 
 @Module({
   imports: [
+    LifecycleModule,
     ClockModule,
     SensitiveModule,
     CacheModule,

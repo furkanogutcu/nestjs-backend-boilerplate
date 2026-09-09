@@ -1,5 +1,4 @@
 import type { IncomingMessage } from 'http';
-import type { MockInstance } from 'vitest';
 
 // * A mutable env the mock reads by reference; each test sets fields before loading the module.
 const mockEnv = {
@@ -94,7 +93,7 @@ vi.mock('@opentelemetry/sdk-trace-node', () => ({
   TraceIdRatioBasedSampler: vi.fn(),
 }));
 
-async function loadTracing(): Promise<{ startTracing: () => void }> {
+async function loadTracing(): Promise<{ startTracing: () => void; shutdownTracing: () => Promise<void> }> {
   // * The module starts tracing as an import side effect, so each case needs a fresh registry.
   vi.resetModules();
 
@@ -102,9 +101,6 @@ async function loadTracing(): Promise<{ startTracing: () => void }> {
 }
 
 describe('tracing', () => {
-  // * Stub process.once so the SDK's SIGTERM registration is captured without leaking a real listener per loadTracing call.
-  let onceSpy: MockInstance;
-
   beforeEach(() => {
     mockEnv.OTEL_ENABLED = false;
     mockEnv.OTEL_DEBUG = false;
@@ -113,7 +109,6 @@ describe('tracing', () => {
     shutdownMock.mockResolvedValue(undefined);
     capturedHttpOptions = {};
     capturedIoredisOptions = {};
-    onceSpy = vi.spyOn(process, 'once').mockReturnValue(process);
   });
 
   describe('startup gate', () => {
@@ -247,34 +242,33 @@ describe('tracing', () => {
     });
   });
 
-  describe('graceful shutdown', () => {
-    async function captureSigtermHandler(): Promise<() => void> {
+  describe('shutdownTracing', () => {
+    it('shuts the SDK down and tolerates being called twice', async () => {
       mockEnv.OTEL_ENABLED = true;
+      const mod = await loadTracing();
 
-      await loadTracing();
-
-      const call = onceSpy.mock.calls.find(([event]) => event === 'SIGTERM');
-
-      return call![1] as () => void;
-    }
-
-    it('shuts the SDK down on SIGTERM', async () => {
-      const handler = await captureSigtermHandler();
-
-      handler();
+      await mod.shutdownTracing();
+      await mod.shutdownTracing();
 
       expect(shutdownMock).toHaveBeenCalledTimes(1);
     });
 
-    it('logs via diag when shutdown rejects', async () => {
+    it('logs via diag when shutdown rejects instead of throwing', async () => {
       shutdownMock.mockRejectedValueOnce(new Error('shutdown failed'));
-      const handler = await captureSigtermHandler();
+      mockEnv.OTEL_ENABLED = true;
+      const mod = await loadTracing();
 
-      handler();
-      await Promise.resolve();
-      await Promise.resolve();
+      await expect(mod.shutdownTracing()).resolves.toBeUndefined();
+      expect(diagErrorMock).toHaveBeenCalled();
+    });
 
-      expect(diagErrorMock).toHaveBeenCalledWith(expect.any(String), expect.any(Error));
+    it('is a no-op when the SDK never started', async () => {
+      mockEnv.OTEL_ENABLED = false;
+      mockEnv.OTEL_DEBUG = false;
+      const mod = await loadTracing();
+
+      await expect(mod.shutdownTracing()).resolves.toBeUndefined();
+      expect(shutdownMock).not.toHaveBeenCalled();
     });
   });
 });

@@ -4,6 +4,7 @@ import { HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
 import type { Response } from 'express';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { ShutdownStateService } from '@infrastructure/lifecycle/shutdown-state.service';
 import { Public } from '@shared/decorators/public.decorator';
 
 import { RedisHealthIndicator } from './redis.health-indicator';
@@ -21,6 +22,7 @@ export class HealthController {
     private readonly healthCheckService: HealthCheckService,
     private readonly databaseIndicator: TypeOrmHealthIndicator,
     private readonly redisIndicator: RedisHealthIndicator,
+    private readonly shutdownState: ShutdownStateService,
     private readonly clock: ClockService,
   ) {}
 
@@ -33,7 +35,9 @@ export class HealthController {
   @Get('ready')
   @ApiOperation({ summary: 'Readiness' })
   async readiness(@Res() res: Response): Promise<void> {
-    const healthy = await this.resolveReadiness();
+    // ! Draining is checked before the cache, not inside it: a cached healthy result would keep the load
+    // ! balancer routing traffic here for up to READINESS_CACHE_TTL_MS after the shutdown signal.
+    const healthy = !this.shutdownState.isDraining && (await this.resolveReadiness());
 
     res.status(healthy ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE).json({ status: healthy ? 'ok' : 'error' });
   }

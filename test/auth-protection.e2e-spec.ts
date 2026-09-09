@@ -11,6 +11,7 @@ import { parseKeyring } from '@config/keyring.util';
 import { ClockService } from '@infrastructure/clock/clock.service';
 import { HealthController } from '@infrastructure/health/health.controller';
 import { RedisHealthIndicator } from '@infrastructure/health/redis.health-indicator';
+import { ShutdownStateService } from '@infrastructure/lifecycle/shutdown-state.service';
 import { CurrentUser } from '@modules/auth/decorators/current-user.decorator';
 import { AuthGuard } from '@modules/auth/guards/auth.guard';
 import { RevocationService } from '@modules/auth/services/revocation.service';
@@ -120,6 +121,7 @@ describe('Auth protection (e2e)', () => {
         { provide: HealthCheckService, useValue: healthCheckService },
         { provide: TypeOrmHealthIndicator, useValue: createMock<TypeOrmHealthIndicator>() },
         { provide: RedisHealthIndicator, useValue: createMock<RedisHealthIndicator>() },
+        ShutdownStateService,
         { provide: APP_FILTER, useClass: GlobalExceptionFilter },
         { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
         { provide: APP_GUARD, useClass: AuthGuard },

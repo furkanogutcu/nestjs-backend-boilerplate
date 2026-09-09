@@ -75,10 +75,22 @@ export function startTracing(): void {
   });
 
   sdk.start();
+}
 
-  process.once('SIGTERM', () => {
-    void sdk?.shutdown().catch((error) => diag.error('OpenTelemetry shutdown failed', error));
-  });
+// * Called by the shutdown sequence in main.ts rather than a signal handler here, so telemetry is flushed
+// * only after the app has closed and every last span has been recorded.
+export async function shutdownTracing(): Promise<void> {
+  if (!sdk) {
+    return;
+  }
+
+  try {
+    await sdk.shutdown();
+  } catch (error) {
+    diag.error('OpenTelemetry shutdown failed', error);
+  }
+
+  sdk = undefined;
 }
 
 startTracing();

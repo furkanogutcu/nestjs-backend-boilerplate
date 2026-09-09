@@ -9,6 +9,7 @@ import {
 import { Response } from 'express';
 
 import { ClockService } from '@infrastructure/clock/clock.service';
+import { ShutdownStateService } from '@infrastructure/lifecycle/shutdown-state.service';
 import { createMockResponse } from '@test/helpers';
 
 import { HealthController } from './health.controller';
@@ -18,6 +19,7 @@ describe('HealthController', () => {
   let healthCheckService: DeepMocked<HealthCheckService>;
   let databaseIndicator: DeepMocked<TypeOrmHealthIndicator>;
   let redisIndicator: DeepMocked<RedisHealthIndicator>;
+  let shutdownState: ShutdownStateService;
   let clock: DeepMocked<ClockService>;
   let controller: HealthController;
   let response: DeepMocked<Response>;
@@ -27,10 +29,11 @@ describe('HealthController', () => {
     healthCheckService = createMock<HealthCheckService>();
     databaseIndicator = createMock<TypeOrmHealthIndicator>();
     redisIndicator = createMock<RedisHealthIndicator>();
+    shutdownState = new ShutdownStateService();
     clock = createMock<ClockService>();
     now = 1000;
     clock.epochMillis.mockImplementation(() => now);
-    controller = new HealthController(healthCheckService, databaseIndicator, redisIndicator, clock);
+    controller = new HealthController(healthCheckService, databaseIndicator, redisIndicator, shutdownState, clock);
     response = createMockResponse();
   });
 
@@ -40,6 +43,37 @@ describe('HealthController', () => {
 
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(response.json).toHaveBeenCalledWith({ status: 'ok' });
+    });
+  });
+
+  describe('readiness while draining', () => {
+    it('reports unavailable once the drain has begun', async () => {
+      shutdownState.beginDrain();
+
+      await controller.readiness(response);
+
+      expect(response.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
+      expect(response.json).toHaveBeenCalledWith({ status: 'error' });
+    });
+
+    it('does not run the dependency checks at all while draining', async () => {
+      shutdownState.beginDrain();
+
+      await controller.readiness(response);
+
+      expect(healthCheckService.check).not.toHaveBeenCalled();
+    });
+
+    it('ignores a cached healthy result so the balancer stops routing immediately', async () => {
+      healthCheckService.check.mockResolvedValue({} as HealthCheckResult);
+
+      await controller.readiness(response);
+      expect(response.status).toHaveBeenLastCalledWith(HttpStatus.OK);
+
+      shutdownState.beginDrain();
+      await controller.readiness(response);
+
+      expect(response.status).toHaveBeenLastCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
     });
   });
 
