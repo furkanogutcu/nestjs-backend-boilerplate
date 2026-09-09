@@ -43,7 +43,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "pnpm run typeorm -d dist/database/typeorm.data-source.js migration:run && node dist/main",
+    "start:prod": "node ./node_modules/typeorm/cli.js migration:run -d dist/database/typeorm.data-source.js && node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "audit": "pnpm audit --audit-level=moderate",
@@ -69,7 +69,9 @@
     "obs:up": "docker compose -f docker-compose.observability.yml up -d",
     "obs:down": "docker compose -f docker-compose.observability.yml down",
     "admin:create": "ts-node -r tsconfig-paths/register ./src/modules/auth/rbac/scripts/create-admin.script.ts",
-    "audit:prune": "ts-node -r tsconfig-paths/register ./src/infrastructure/audit/scripts/prune-audit.script.ts"
+    "admin:create:prod": "node dist/modules/auth/rbac/scripts/create-admin.script.js",
+    "audit:prune": "ts-node -r tsconfig-paths/register ./src/infrastructure/audit/scripts/prune-audit.script.ts",
+    "audit:prune:prod": "node dist/infrastructure/audit/scripts/prune-audit.script.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1128.0",

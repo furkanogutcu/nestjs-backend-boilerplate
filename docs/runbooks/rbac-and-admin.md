@@ -16,7 +16,14 @@ On every boot `PermissionSyncService`:
 ## Creating the first administrator
 
 ```bash
-pnpm admin:create --email=you@example.com
+pnpm admin:create --email=you@example.com                 # from a checkout, over ts-node
+```
+
+In a deployed container there is no `ts-node` — the production image installs runtime dependencies only, so
+use the compiled entry point:
+
+```bash
+docker compose exec <app service> pnpm admin:create:prod --email=you@example.com
 ```
 
 The account is created with the `superuser` role and **MFA already active**. The command prints, once:
@@ -32,6 +39,14 @@ To supply your own password without it landing in shell history:
 
 ```bash
 printf '%s' 'the-password' | pnpm admin:create --email=you@example.com --password-stdin
+```
+
+`docker compose exec` needs `-T` for that to work, so that it does not allocate a TTY and stdin reaches the
+process:
+
+```bash
+printf '%s' 'the-password' \
+  | docker compose exec -T <app service> pnpm admin:create:prod --email=you@example.com --password-stdin
 ```
 
 ## Adding a permission

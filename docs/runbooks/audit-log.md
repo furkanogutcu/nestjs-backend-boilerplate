@@ -47,15 +47,42 @@ is applied.
 
 ## Retention
 
-Pruning is a standalone task, not an in-process job — the application must not hold delete rights here.
+Pruning is a standalone task, not an in-process job. It connects with `MIGRATION_DATABASE_URL`, because the
+application role cannot delete audit rows — that is the whole point of the grant above. A scheduled job living
+inside the application would need a second, delete-capable connection open in the running process, which hands
+back the reach the revoke was there to remove.
 
 ```bash
-pnpm audit:prune                      # uses AUDIT_RETENTION_DAYS (default 365)
+pnpm audit:prune                      # from a checkout, over ts-node
 pnpm audit:prune --older-than-days=90 # explicit window
 ```
 
-It connects with `MIGRATION_DATABASE_URL`. Schedule it from your deployment platform (a cron container, a
-scheduled job, or the host's crontab). Nothing runs it automatically.
+In a deployed container use the compiled entry point — the production image has no `ts-node`:
+
+```bash
+pnpm audit:prune:prod --older-than-days=90
+```
+
+Both default to `AUDIT_RETENTION_DAYS` (365) when no window is given.
+
+### Scheduling it
+
+**Nothing runs this automatically.** There is no portable answer here: the scheduler belongs to the platform,
+so wire the command into whichever one you already run.
+
+| Platform                       | Where it goes                                                        |
+| ------------------------------ | -------------------------------------------------------------------- |
+| A platform with scheduled jobs | A scheduled task on the app service, command `pnpm audit:prune:prod` |
+| Kubernetes                     | A `CronJob` on the application image, same command                   |
+| Plain Docker on a host         | The host crontab, calling `docker compose exec` (below)              |
+
+```cron
+# monthly, 03:00 on the first — audit volume does not justify a nightly pass
+0 3 1 * * cd /path/to/deployment && docker compose exec -T <app service> pnpm audit:prune:prod >> /var/log/audit-prune.log 2>&1
+```
+
+Monthly is deliberate. A retention window measured in years does not need a daily job, and a rarely-running
+task that deletes rows is easier to reason about than a frequent one.
 
 Retention is a legal decision, not a technical one: an audit trail that expires before an incident is
 investigated is worse than useless, and one kept forever is its own liability.

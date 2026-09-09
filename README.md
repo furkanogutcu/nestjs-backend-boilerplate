@@ -394,7 +394,8 @@ subject, IP and request id.
 
 The table is **append-only**: the migration revokes `UPDATE` and `DELETE` from the application role, so a
 compromised application cannot rewrite its own history. Retention is a standalone task (`pnpm audit:prune`)
-run by the owning role, precisely because the application must not hold delete rights here.
+run by the owning role, precisely because the application must not hold delete rights here — **nothing
+schedules it for you**; see [the runbook](./docs/runbooks/audit-log.md#scheduling-it).
 
 ### Object storage
 
@@ -506,8 +507,8 @@ nothing else depends on them.
 | Test (unit / integration / e2e)     | `pnpm test` · `pnpm test:integration` · `pnpm test:e2e`                                    |
 | Migration (generate / run / revert) | `pnpm db:migration:generate <name>` · `pnpm db:migration:run` · `pnpm db:migration:revert` |
 | Generate OpenAPI / Postman          | `pnpm docs:generate` · `pnpm postman:generate`                                             |
-| Create the first superuser          | `pnpm admin:create --email=<address>`                                                      |
-| Prune the audit log                 | `pnpm audit:prune [--older-than-days=N]`                                                   |
+| Create the first superuser          | `pnpm admin:create --email=<address>` (deployed: `admin:create:prod`)                      |
+| Prune the audit log                 | `pnpm audit:prune [--older-than-days=N]` (deployed: `audit:prune:prod`)                    |
 | Observability stack (local)         | `pnpm obs:up` · `pnpm obs:down`                                                            |
 
 ## Test
