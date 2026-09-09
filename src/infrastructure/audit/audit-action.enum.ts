@@ -13,6 +13,10 @@ export enum AuditAction {
   AuthSessionRevoked = 'auth.session.revoked',
   AuthMfaEnabled = 'auth.mfa.enabled',
   AuthMfaDisabled = 'auth.mfa.disabled',
+  AccountDeletionRequested = 'account.deletion.requested',
+  AccountDeletionCancelled = 'account.deletion.cancelled',
+  AccountErased = 'account.erased',
+  AccountDataExported = 'account.data.exported',
 
   // Administrative mutations, recorded for the actor who performed them.
   AdminUserSuspended = 'admin.user.suspended',

@@ -95,6 +95,11 @@ const envObjectSchema = z.object({
     .default(10 * 1024 * 1024),
   UPLOAD_URL_TTL_SECONDS: z.coerce.number().int().positive().max(3600).default(300),
 
+  // ! The window in which a deletion request can still be withdrawn. Erasure is irreversible, so this is the
+  // ! only protection against an account destroyed in anger or by a stolen session.
+  ACCOUNT_DELETION_GRACE_DAYS: z.coerce.number().int().positive().default(30),
+  ACCOUNT_ERASURE_CRON: z.string().min(1).default('0 4 * * *'),
+
   // * How long audit events are kept before `pnpm audit:prune` removes them. Long by default: an audit trail
   // * that expires before an incident is investigated is worse than useless.
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),

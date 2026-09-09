@@ -36,6 +36,12 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   suspendedAt!: Date | null;
 
+  // ! Erasure is deferred, not immediate: the account stays usable during the grace window so the person can
+  // ! change their mind, and only the scheduled job past that window deletes anything. Clearing this column is
+  // ! all it takes to cancel.
+  @Column({ type: 'timestamptz', nullable: true })
+  deletionRequestedAt!: Date | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   lastSeenAt!: Date | null;
 
