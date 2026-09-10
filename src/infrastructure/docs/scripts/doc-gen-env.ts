@@ -13,7 +13,6 @@ const DOC_GEN_ENV: Record<string, string> = {
   JWT_ACCESS_ACTIVE_KID: 'jwt-k1',
   REFRESH_TOKEN_PEPPER: 'doc-gen-refresh-token-pepper-0123456789abcdef',
   CSRF_HMAC_SECRET: 'doc-gen-csrf-hmac-secret-0123456789abcdef',
-  KAFKA_BROKERS: 'localhost:9092',
 };
 
 for (const [key, value] of Object.entries(DOC_GEN_ENV)) {
