@@ -26,3 +26,21 @@ groups:
           severity: warning
         annotations:
           summary: 'HTTP p99 latency above 2s over the last 5m'
+
+  - name: exporters
+    rules:
+      - alert: PostgresExporterDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'postgres-exporter is not being scraped (check the REPLACE_APP_NAME target in prometheus.production.yml)'
+
+      - alert: PgbouncerExporterDown
+        expr: up{job="pgbouncer-exporter"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'pgbouncer-exporter is not being scraped (check the REPLACE_APP_NAME target in prometheus.production.yml)'
