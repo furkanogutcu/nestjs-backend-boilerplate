@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "claude-kit": {
+      "source": {
+        "source": "github",
+        "repo": "furkanogutcu/claude-kit"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "postgres@claude-kit": true
+  }
+}
