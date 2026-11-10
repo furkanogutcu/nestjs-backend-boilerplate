@@ -12,115 +12,10 @@ This file is a **signpost**; the deep detail lives in the linked docs and is not
 
 ## Working principles
 
-> These principles prioritize **care** over speed. Apply common sense for trivial work.
-
-### 1. Honesty
-
-**State the truth. Surface uncertainty and risk; do not sugarcoat to gain approval.**
-
-- Separate what is known from what is guessed; when unsure, say so instead of inventing an answer.
-- No needless agreement or praise — assessments rest on reasoning, not on pleasing the user. Voice disagreement rather than defer.
-- Critique the plan **before** starting: weak points, risks, simpler alternatives. Do not proceed silently.
-- Report outcomes as they are: if a test fails, say so with its output; call out any step skipped or left unverified; never present the unverified as done.
-- On noticing a mistake, correct it and say so; do not hide errors.
-
-### 2. Think before coding
-
-**Do not assume. Do not hide confusion. Surface tradeoffs.**
-
-Before implementing:
-
-- State assumptions explicitly. Ask when unsure.
-- When multiple interpretations are possible, present all of them — do not pick one silently.
-- Point out a simpler path if one exists. Push back when needed.
-- Stop when something is unclear. Name what is unclear. Ask.
-
-### 3. Simplicity first
-
-**The least code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No unrequested "flexibility" or "configurability".
-- No error handling for impossible scenarios.
-- If a change spans 200 lines where 50 would do, rewrite it.
-
-Ask: "Would a senior engineer call this 'over-engineered'?" If so, simplify.
-
-### 4. Surgical changes
-
-**Touch only what is necessary. Clean up only your own mess.**
-
-When editing existing code:
-
-- Do not "improve" neighboring code, comments, or formatting.
-- Do not refactor what is not broken.
-- Follow the existing style even where a different approach would be preferable.
-- On spotting unrelated dead code — report it, do not delete it.
-
-Change residue:
-
-- Remove any import, variable, or function that your change renders unused.
-- Do not remove pre-existing dead code unless asked.
-
-Test: every changed line must trace directly back to the user's request.
-
-### 5. Goal-driven execution
-
-**Define the success criterion. Loop until it is verified.**
-
-Turn tasks into verifiable goals:
-
-- "Add validation" → "Write a test for invalid inputs, then make it pass."
-- "Fix a bug" → "Write a test that reproduces it, then make it pass."
-- "Refactor X" → "Keep tests green before and after."
-
-For multi-step work, give a short plan:
-
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Concrete verification → **"When the work is done"** below. A strong criterion enables independent looping; a weak one ("just make it work") requires constant clarification.
-
-### 6. Phased work and approval gates
-
-**Split multi-step work into phases. At the end of each phase, stop, propose a commit message, and wait for approval.**
-
-- Present a short phase plan up front; each phase should produce a verifiable output.
-- When a phase ends: summarize what was done, propose a **Conventional Commits** message, and **stop** — do not move to the next phase until the user has reviewed and approved.
-- Proceed once approved. If changes are requested, revise the phase and resubmit it for approval.
-- No ceremony for trivial single-step work — use common sense.
-
-### 7. Scope decisions and deferred work
-
-**Do not narrow scope without asking. Make deferred work visible.**
-
-- Before treating anything as "out of scope," "deferred," or "for a later phase," **ask the user** — do not narrow silently.
-- When work is deliberately deferred, do not merely suggest — **ask**: at an appropriate point (before implementation / between phases / at the end), make the deferred work visible (with a proposed issue/backlog task).
-- Reference other work only **descriptively** ("when the payments module lands"); no sequential or numbered references ("once X is done," "Task 2").
-
-### 8. Production-ready quality
-
-**Every line is written as if it ships to production. No "this is fine for now, we'll fix it later."**
-
-- No stopgaps, shortcuts, or deliberate technical debt — do the work correctly, to industry standard.
-- No "just for the demo," "temporary hack," or "I'll handle it later" TODOs: what you write is either production-ready or **deliberately deferred** (principle 7 — ask and make it visible).
-- Think ahead: within the chosen scope, maintainability, error paths, concurrency, boundary values, and scale behavior must be built solidly. (This is not a **speculative feature/flexibility** — principle 3 still applies.)
-- This does not conflict with simplicity: principle 3 shrinks **how much** code (scope); this principle makes what is written **complete and correct**. Little, but whole.
-
-### 9. Communication: concise, and in Turkish
-
-**Answer in Turkish, in the fewest words that preserve meaning.**
-
-- No filler: pleasantries, preambles, and summaries that restate the question are omitted.
-- Lead with the conclusion; add reasoning only as needed.
-- Technical terms, code blocks, and file paths are preserved **verbatim** — brevity must not corrupt them.
-- The language is always **Turkish** (see "Non-negotiable rules → Agent communication language is Turkish").
-
-> **When the principles are working:** fewer needless changes in diffs, fewer rewrites caused by over-engineering, and clarifying questions come _before_ mistakes, not _after_.
+- **Ask before guessing.** State assumptions; if the request has more than one reading, name them and ask. Ask before treating anything as out of scope.
+- **Smallest complete change.** No speculative features, options or abstractions; touch only what the task needs and match the surrounding style.
+- **Production-ready, not "for now".** Within the chosen scope, error paths, concurrency and boundary values are handled. Deferred work becomes a tracked issue, not a stopgap or an untracked `TODO`.
+- **Verify before claiming done.** Run the checks in "When the work is done" and report failures or skipped steps as they are.
 
 ## Commands (source: `package.json`; package manager **pnpm**, Node ≥22)
 
@@ -159,8 +54,7 @@ Concrete verification → **"When the work is done"** below. A strong criterion 
 - The full code style (ESLint-enforced + manual conventions) → the `ARCHITECTURE.md` "Code style" section.
 - **UUID primary keys are generated app-side as UUIDv7** (`generateUuid()` → the `uuidv7` package); there is **no** DB-side `DEFAULT` on the column, and `uuid-ossp` is **not used**. Details: `ARCHITECTURE.md` "Primary key convention".
 - **Auth transport:** the access token is always Bearer; the refresh token is an HttpOnly cookie + double-submit CSRF on web (`X-Client-Type: web`), and body/Bearer on mobile. OAuth providers (Google/Apple/Game Center/Play Games) are **opt-in** — none are production-required, and each fails closed if its verifier config is missing.
-- **Commits must be Conventional Commits** (semantic-release derives the version from them) and the **commit message is written/proposed entirely in English**. The commit message is **a single line: no body** — just `type(scope): subject` (e.g. `feat(auth): add guest login`); proposed messages are likewise given without a body. (**Exception:** this rule is for _development_ commits; the commit that lands on `main` via squash merge is a release/history artifact and may carry a structured body + a `BREAKING CHANGE:`/`Refs:` footer — template: `CONTRIBUTING.md` "PR and squash-merge template".) **No trailer/co-author line** is added to the commit message (e.g. `Co-Authored-By:`) — the `commit-msg` hook rejects one. Details: `CONTRIBUTING.md`.
-- **Agent communication language is Turkish:** everything the agent writes to the user (explanations, summaries, plan/phase notes, questions) is written in Turkish. **Exceptions stay English:** commit messages (the rule above) and code identifiers (variable/function/class/file names, by convention).
+- **Commits are Conventional Commits** (semantic-release derives the version from them); the `commit-msg` hook rejects trailer/co-author lines. Exception: the squash-merge commit on `main` may carry a structured body + `BREAKING CHANGE:`/`Refs:` footer — template: `CONTRIBUTING.md` "PR and squash-merge template".
 
 ## When the work is done (every task)
 
